@@ -3,6 +3,7 @@
   "displayName": "flagpole-explorer",
   "description": "",
   "version": "0.0.1",
+  "repository": "https://github.com/getsentry/vscode-flagpole-explorer/",
   "publisher": "getsentry",
   "license": "MIT",
   "engines": {
