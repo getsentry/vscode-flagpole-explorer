@@ -1,4 +1,5 @@
 const esbuild = require("esbuild");
+const copyStaticFiles = require('esbuild-copy-static-files')
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -40,6 +41,13 @@ async function main() {
 		plugins: [
 			/* add to the end of plugins array */
 			esbuildProblemMatcherPlugin,
+			copyStaticFiles({
+				src: './static',
+      	dest: './dist/static',
+				dereference: true,
+				force: true,
+				recursive: true,
+			})
 		],
 	});
 	if (watch) {

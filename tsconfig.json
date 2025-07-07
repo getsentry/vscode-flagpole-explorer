@@ -1,9 +1,11 @@
 {
 	"compilerOptions": {
-		"module": "Node16",
-		"target": "ES2022",
+		// Cursor.app uses Node20 still.
+		// https://github.com/microsoft/TypeScript/wiki/Node-Target-Mapping#node-20
+		"module": "nodenext",
+		"target": "ES2023",
 		"lib": [
-			"ES2022"
+			"ES2023"
 		],
 		"sourceMap": true,
 		"rootDir": "src",
