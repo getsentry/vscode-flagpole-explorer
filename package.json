@@ -3,7 +3,7 @@
   "displayName": "flagpole-explorer",
   "description": "",
   "version": "0.0.1",
-  "publisher": "Sentry",
+  "publisher": "getsentry",
   "license": "MIT",
   "engines": {
     "vscode": "^1.99.0"
