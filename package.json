@@ -1,11 +1,12 @@
 {
   "name": "flagpole-explorer",
-  "displayName": "flagpole-explorer",
-  "description": "",
-  "version": "0.0.1",
+  "displayName": "Flagpole Explorer",
+  "description": "Visualize feature flags defined in flagpole.yml",
+  "version": "0.0.0",
+  "icon": "./dist/static/flag-128.png",
   "repository": "https://github.com/getsentry/vscode-flagpole-explorer/",
   "publisher": "getsentry",
-  "license": "MIT",
+  "license": "SEE LICENSE IN LICENSE",
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -13,10 +14,12 @@
     "Other"
   ],
   "keywords": [
-    "Sentry",
+    "sentry",
     "flagpole",
     "feature flag"
   ],
+  "extensionKind": ["workspace", "ui"],
+  "pricing": "Free",
   "activationEvents": [],
   "main": "./dist/extension.js",
   "contributes": {
