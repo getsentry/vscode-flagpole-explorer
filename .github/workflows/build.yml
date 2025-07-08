@@ -1,0 +1,104 @@
+name: Extension CI
+
+on:
+  push:
+    branches:
+      - main
+    tags: 
+      - 'releases/**'
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
+    outputs:
+      new_tag: ${{ steps.find_version.outputs.new_tag }}
+      changelog: ${{ steps.find_version.outputs.changelog }}
+      vsixPath: ${{ steps.package.outputs.vsixPath }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node v${{ env.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node-version }}
+          cache: 'yarn'
+      
+      - run: yarn install --frozen-lockfile
+
+      - name: Fetch next version
+        uses: mathieudutour/github-tag-action@v6.1
+        id: find_version
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          release_branches: main
+          dry_run: true
+
+      - run: yarn run lint
+
+      - run: yarn run check-types
+
+      - name: yarn run test
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: yarn run test
+
+      - name: Set package.json version to ${{ steps.find_version.outputs.new_tag }}
+        run: >
+          cp package.json tmp.json;
+          jq -r '.version |= "${{ steps.find_version.outputs.new_version }}"' tmp.json > package.json;
+          rm -rf tmp.json
+
+      - name: Package as `flagpole-explorer-${{ steps.find_version.outputs.new_version }}.vsix`
+        id: package
+        uses: HaaLeo/publish-vscode-extension@v2
+        with:
+          pat: FAKE_FOR_PACKAGE
+          dryRun: true
+
+      - uses: actions/upload-artifact@master
+        with:
+          path: ${{ steps.package.outputs.vsixPath }}
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
+
+    steps:
+      - uses: actions/download-artifact@master
+
+      - name: Sentry Release
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        with:
+          environment: production
+          release: ${{ needs.build.outputs.new_tag }}
+          ignore_missing: true
+          set_commits	: skip
+
+      - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ needs.build.outputs.new_tag }}
+          name: Release ${{ needs.build.outputs.new_tag }}
+          body: ${{ needs.build.outputs.changelog }}
+          artifacts: ./artifact/${{ needs.build.outputs.vsixPath }}
+
+      - name: Publish to VSCode Marketplace
+        uses: HaaLeo/publish-vscode-extension@v2
+        id: publishToVSCodeMarketplace
+        with:
+          pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
+          extensionFile: ./artifact/${{ needs.build.outputs.vsixPath }}
+          registryUrl: https://marketplace.visualstudio.com
+
