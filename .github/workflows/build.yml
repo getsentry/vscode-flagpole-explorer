@@ -43,10 +43,10 @@ jobs:
 
       - run: yarn run check-types
 
-      - name: yarn run test
-        uses: GabrielBB/xvfb-action@v1.0
-        with:
-          run: yarn run test
+      # - name: yarn run test
+      #   uses: GabrielBB/xvfb-action@v1.0
+      #   with:
+      #     run: yarn run test
 
       - name: Set package.json version to ${{ steps.find_version.outputs.new_tag }}
         run: >

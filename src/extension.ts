@@ -2,7 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { FlagsByCreatedAtProvider, FlagsByEnabledProvider, FlagsByOwnerProvider, FlagsByRolloutProvider} from './flagpoleFlagsProvider';
-import { Element, FeatureElement } from './elements';
+import { Element } from './elements';
 import FileMap from './fileMap';
 import { Feature } from './types';
 import FlagpoleFile from './flagpoleFile';
@@ -54,12 +54,10 @@ export function activate(context: vscode.ExtensionContext) {
 		byRolloutTreeView,
 		statusBar,
 		flagpoleYamlWatcher.onDidCreate((uri) => {
-			fileMap.add(uri);
-			refreshProviders();
+			fileMap.add(uri).then(refreshProviders);
 		}),
 		flagpoleYamlWatcher.onDidChange((uri) => {
-			fileMap.update(uri);
-			refreshProviders();
+			fileMap.update(uri).then(refreshProviders);
 		}),
 		flagpoleYamlWatcher.onDidDelete((uri) => {
 			fileMap.remove(uri);
@@ -95,8 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 	);
 
 	vscode.workspace.findFiles('**/flagpole.yml', '**/node_modules/**').then(found => {
-		found.forEach(uri => fileMap.add(uri));
-		refreshProviders();
+		Promise.all(found.map(uri => fileMap.add(uri))).then(refreshProviders);
 	});
 
 	updateStatusBar();
