@@ -9,6 +9,7 @@ A VSCode/Cursor/etc extension to aid in navigating & reading Sentry's internal f
 You can install the latest version of Flagpole Explorer from the Visual Studio Marketplace
 
  - https://marketplace.visualstudio.com/items?itemName=getsentry.flagpole-explorer
+ - https://open-vsx.org/extension/getsentry/flagpole-explorer
 
 If you're dealing with Flagpole inside Sentry, then the extension is already part of the recommended list for the repo.
 
@@ -44,6 +45,7 @@ Publishing depends on a few security tokens:
 - [Publish to Visual Studio Marketplace with `vscode-flagpole-explorer-publish-token`](https://dev.azure.com/ecosystem-member-1/_usersSettings/tokens)
     This token has a 1 year expiration, and will need to be rotated.
     Scopes: `Extensions=Read & Manage` & `Marketplace=Publish`
+- Publsh to OVSX Registry
 ## License
 
 [MIT ©](https://github.com/getsentry/cookie-sync/blob/main/LICENCE)

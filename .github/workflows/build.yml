@@ -94,11 +94,15 @@ jobs:
           body: ${{ needs.build.outputs.changelog }}
           artifacts: ./artifact/${{ needs.build.outputs.vsixPath }}
 
+      - name: Publish to Open VSX Registry
+        uses: HaaLeo/publish-vscode-extension@v2
+        with:
+          pat: ${{ secrets.OVSX_REGISTRY_TOKEN }}
+          extensionFile: ./artifact/${{ needs.build.outputs.vsixPath }}
+
       - name: Publish to VSCode Marketplace
         uses: HaaLeo/publish-vscode-extension@v2
-        id: publishToVSCodeMarketplace
         with:
           pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
           extensionFile: ./artifact/${{ needs.build.outputs.vsixPath }}
           registryUrl: https://marketplace.visualstudio.com
-
