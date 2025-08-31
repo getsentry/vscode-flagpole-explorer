@@ -1,10 +1,13 @@
 {
   "name": "flagpole-explorer",
   "displayName": "Flagpole Explorer",
-  "description": "Visualize feature flags defined in flagpole.yml",
+  "description": "Visualize feature flags defined in flagpole.yaml",
   "version": "0.0.0",
   "icon": "./dist/static/flag-128.png",
-  "repository": "https://github.com/getsentry/vscode-flagpole-explorer/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/getsentry/vscode-flagpole-explorer.git"
+  },
   "publisher": "getsentry",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
@@ -20,13 +23,36 @@
     "feature flag"
   ],
   "pricing": "Free",
-  "activationEvents": [],
+  "activationEvents": [
+    "workspaceContains:**/flagpole.yaml"
+  ],
+  "main": "./dist/extension.js",
   "browser": "./dist/extension.js",
   "contributes": {
+    "configurationDefaults": {
+      "files.associations": {
+        "flagpole.yaml": "yaml"
+      },
+      "yaml.maxItemsComputed": 10000
+    },
     "commands": [
       {
-        "command": "sentryFlagpoleAddSegment",
-        "title": "Add Segment"
+        "category": "Flagpole",
+        "command": "flagpole-explorer.addFeature",
+        "title": "Add Feature",
+        "when": "resourceFilename == flagpole.yaml"
+      },
+      {
+        "category": "Flagpole",
+        "command": "flagpole-explorer.addSegment",
+        "title": "Add Segment",
+        "when": "resourceFilename == flagpole.yaml"
+      },
+      {
+        "category": "Flagpole",
+        "command": "flagpole-explorer.addCondition",
+        "title": "Add Condition",
+        "when": "resourceFilename == flagpole.yaml"
       }
     ],
     "viewsContainers": {
@@ -40,6 +66,12 @@
     },
     "views": {
       "sentryFlagpoleViewContainer": [
+        {
+          "id": "sentryFlagpoleFlagsByName",
+          "name": "By Name",
+          "icon": "./dist/static/flag.svg",
+          "visibility": "visible"
+        },
         {
           "id": "sentryFlagpoleFlagsByOwner",
           "name": "By Owner",
@@ -67,38 +99,32 @@
       ]
     },
     "menus": {
-      "editor/context": [
-        {
-          "command": "sentryFlagpoleAddSegment",
-          "group": "navigation",
-          "when": "resourceFilename == flagpole.yml && false"
-        }
-      ],
+      "editor/context": [],
       "view/item/context": []
     },
     "viewsWelcome": [
       {
         "view": "sentryFlagpoleFlagsByEnabled",
-        "contents": "No `flagpole.yml` found. Are you in the right repo or workspace?\n[Open `flagpole.yml` In Github $(link-external)](https://github.com/getsentry/sentry-options-automator/blob/main/options/default/flagpole.yml)"
+        "contents": "No `flagpole.yaml` found. Are you in the right repo or workspace?\n[Open `flagpole.yaml` In Github $(link-external)](https://github.com/getsentry/sentry-options-automator/blob/main/options/default/flagpole.yaml)"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run package-web",
-    "compile-web": "npm run check-types && node esbuild.js",
-    "watch-web": "npm-run-all -p watch-web:*",
-    "watch-web:esbuild": "node esbuild.js --watch",
-    "watch-web:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package-web": "npm run check-types && node esbuild.js --production",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "pretest": "npm run compile-web",
+    "pretest": "npm run compile",
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
+  "dependencies": {},
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
-    "@types/js-yaml": "^4.0.9",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "1.99.0",
@@ -110,9 +136,7 @@
     "esbuild": "^0.25.3",
     "esbuild-copy-static-files": "^0.1.0",
     "eslint": "^9.25.1",
-    "js-yaml": "^4.1.0",
     "npm-run-all": "^4.1.5",
-    "typescript": "^5.8.3",
-    "yaml": "^2.8.0"
+    "typescript": "^5.8.3"
   }
 }
