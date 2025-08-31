@@ -1,0 +1,103 @@
+import * as vscode from 'vscode';
+import OutlineStore from '../stores/outlineStore';
+import { OPERATORS, PROPERTIES } from '../types';
+
+export default class TextEditorCommandProvider {
+  constructor(
+    private outlineStore: OutlineStore,
+    private documentFilter: vscode.DocumentFilter,
+  ) {}
+
+  public register(): vscode.Disposable[] {
+    return [
+      vscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
+      vscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
+      vscode.commands.registerTextEditorCommand('flagpole-explorer.addCondition', this.addCondition),
+    ];
+  }
+
+  public addFeature = (
+    textEditor: vscode.TextEditor,
+    edit: vscode.TextEditorEdit,
+    position: vscode.Position = textEditor.selection.start,
+  ) => {
+    const target = position.with({character: 0});
+    console.log('flagpole-explorer.addFeature', target);
+
+    const snippet = new vscode.SnippetString();
+
+    const lineAbove = textEditor.document.lineAt(target.line - 1);
+    if (lineAbove.text !== 'options:' && !lineAbove.isEmptyOrWhitespace) {
+      snippet.appendText('\n');
+    }
+
+    snippet
+      .appendText('  feature.organizations:').appendPlaceholder('my-new-flag').appendText(':\n')
+      .appendText('    created_at: ').appendVariable('CURRENT_YEAR', '').appendText('-').appendVariable('CURRENT_MONTH', '').appendText('-').appendVariable('CURRENT_DATE', '').appendText('\n')
+      .appendText('    enabled: ').appendChoice(['true', 'false']).appendText('\n')
+      .appendText('    owner: ').appendPlaceholder('unknown').appendText('\n')
+      .appendText('    segments: []\n');
+
+    textEditor.insertSnippet(snippet, target, {
+      undoStopBefore: true,
+      undoStopAfter: true,
+      keepWhitespace: true,
+    });
+  };
+
+  public addSegment = (
+    textEditor: vscode.TextEditor,
+    edit: vscode.TextEditorEdit,
+    position: vscode.Position = textEditor.selection.start,
+  ) => {
+    const target = position.with({character: 0});
+    console.log('flagpole-explorer.addSegment', target);
+
+    const snippet = new vscode.SnippetString();
+
+    const lineAbove = textEditor.document.lineAt(target.line - 1);
+    if (lineAbove.text === 'segments: []') {
+      // need to kill the replace line above
+      snippet.appendText('    segments:\n');
+    }
+
+    snippet
+      .appendText('      - name: ').appendPlaceholder('new segment').appendText('\n')
+      .appendText('        rollout: ').appendPlaceholder('0').appendText('\n')
+      .appendText('        conditions: []\n');
+
+    textEditor.insertSnippet(snippet, target, {
+      undoStopBefore: true,
+      undoStopAfter: true,
+      keepWhitespace: true,
+    });
+  };
+
+  public addCondition = (
+    textEditor: vscode.TextEditor,
+    edit: vscode.TextEditorEdit,
+    position: vscode.Position = textEditor.selection.start,
+  ) => {
+    const target = position.with({character: 0});
+    console.log('flagpole-explorer.addCondition', target);
+
+    const snippet = new vscode.SnippetString();
+
+    const lineAbove = textEditor.document.lineAt(target.line - 1);
+    if (lineAbove.text === 'segments: []') {
+      // need to kill the replace line above
+      snippet.appendText('    segments:');
+    }
+
+    snippet
+      .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
+      .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
+      .appendText('            conditions: []\n');
+
+    textEditor.insertSnippet(snippet, target, {
+      undoStopBefore: true,
+      undoStopAfter: true,
+      keepWhitespace: true,
+    });
+  };
+}

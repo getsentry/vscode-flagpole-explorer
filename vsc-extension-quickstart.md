@@ -9,6 +9,7 @@
   * The file exports one function, `activate`, which is called the very first time your extension is activated (in this case by executing the command). Inside the `activate` function we call `registerCommand`.
   * We pass the function containing the implementation of the command as the second parameter to `registerCommand`.
 
+
 ## Setup
 
 * install the recommended extensions (amodio.tsl-problem-matcher, ms-vscode.extension-test-runner, and dbaeumer.vscode-eslint)
@@ -21,6 +22,7 @@
 * Set breakpoints in your code inside `src/extension.ts` to debug your extension.
 * Find output from your extension in the debug console.
 
+
 ## Make changes
 
 * You can relaunch the extension from the debug toolbar after changing code in `src/extension.ts`.
@@ -31,6 +33,7 @@
 
 * You can open the full set of our API when you open the file `node_modules/@types/vscode/index.d.ts`.
 
+
 ## Run tests
 
 * Install the [Extension Test Runner](https://marketplace.visualstudio.com/items?itemName=ms-vscode.extension-test-runner)
@@ -40,6 +43,7 @@
 * Make changes to `src/test/extension.test.ts` or create new test files inside the `test` folder.
   * The provided test runner will only consider files matching the name pattern `**.test.ts`.
   * You can create folders inside the `test` folder to structure your tests any way you want.
+
 
 ## Go further
 

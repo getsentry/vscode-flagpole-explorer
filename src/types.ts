@@ -10,6 +10,7 @@ export type Feature = {
 };
 
 export const FEATURE_NAME_PATTERN = /^feature\.(?:organizations|projects)\:[a-z0-9-_.]+$/;
+export const FEATURE_NAME_LINE = /^\s*"?feature\.(?:organizations|projects)\:[\w\-]+\"?:/;
 export type FeatureName = `flagpole.organizations.${Lowercase<string>}` | `flagpole.projects.${Lowercase<string>}`;
 
 export type Segment = {
@@ -18,7 +19,7 @@ export type Segment = {
   conditions: Condition[];
 };
 
-export type RolloutState = undefined | '100%' | 'partial' | '0%';
+export type RolloutState = '100%' | 'partial' | '0%';
 
 export type InCondition = {
   operator: 'in';
@@ -58,17 +59,66 @@ export type NotEqualsCondition = {
 
 export type Condition = InCondition | NotInCondition | ContainsCondition | NotContainsCondition | EqualsCondition | NotEqualsCondition;
 
+export type OperatorName = Condition['operator'];
 export type PropertyName = 
-  | 'organization_slug'
-  | 'organization_name'
   | 'organization_id'
   | 'organization_is-early-adopter'
-  | 'project_slug'
-  | 'project_name'
+  | 'organization_name'
+  | 'organization_slug'
   | 'project_id'
+  | 'project_name'
   | 'project_platform'
-  | 'user_id'
-  | 'user_is-superuser'
-  | 'user_is-staff'
+  | 'project_slug'
+  | 'sentry_region'
+  | 'sentry_singletenant'
+  | 'subscription_is-free'
+  | 'subscription_is-partner'
+  | 'subscription_missing'
+  | 'subscription_plan-family'
+  | 'subscription_plan-tier'
+  | 'subscription_plan-trial-plan-family'
+  | 'subscription_plan-trial-plan-tier'
+  | 'subscription_plan-trial-plan'
+  | 'subscription_plan'
+  | 'user_domain'
   | 'user_email'
-  | 'user_domain';
+  | 'user_id'
+  | 'user_is-staff'
+  | 'user_is-superuser';
+
+
+export const PROPERTIES: PropertyName[] = [
+  'organization_id',
+  'organization_is-early-adopter',
+  'organization_name',
+  'organization_slug',
+  'project_id',
+  'project_name',
+  'project_platform',
+  'project_slug',
+  'sentry_region',
+  'sentry_singletenant',
+  'subscription_is-free',
+  'subscription_is-partner',
+  'subscription_missing',
+  'subscription_plan-family',
+  'subscription_plan-tier',
+  'subscription_plan-trial-plan-family',
+  'subscription_plan-trial-plan-tier',
+  'subscription_plan-trial-plan',
+  'subscription_plan',
+  'user_domain',
+  'user_email',
+  'user_id',
+  'user_is-staff',
+  'user_is-superuser',
+];
+
+export const OPERATORS: OperatorName[] = [
+  'in',
+  'not_in',
+  'contains',
+  'not_contains',
+  'equals',
+  'not_equals',
+];
