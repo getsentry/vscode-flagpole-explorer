@@ -37,12 +37,19 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
       command: 'flagpole-explorer.addFeature',
       arguments: [outline.map.selectionRange.end.translate(1)]
     });
-    const featureLenses = outline.map.allFeatures.map(feature => {
-      return new vscode.CodeLens(feature.symbol.range, {
-        title: '$(plus)\u2000Create Feature',
-        command: 'flagpole-explorer.addFeature',
-        arguments: [feature.symbol.range.end]
-      });
+    const featureLenses = outline.map.allFeatures.flatMap(feature => {
+      return [
+        new vscode.CodeLens(feature.symbol.range, {
+          title: '$(plus)\u2000Create Feature',
+          command: 'flagpole-explorer.addFeature',
+          arguments: [feature.symbol.range.end]
+        }),
+        // new vscode.CodeLens(feature.symbol.range, {
+        //   title: '$(beaker)\u2000Test',
+        //   command: 'flagpole-explorer.evaluate-flag',
+        //   arguments: [feature.name]
+        // }),
+      ];
     });
     return [
       optionsLens,
@@ -71,9 +78,15 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     return features
       .filter(feature => range.intersection(feature.symbol.selectionRange))
       .map(feature => {
-        const label = feature.enabled
-          ? `${getRolloutEmoji(feature.rolloutState)} ${feature.rolloutState} rollout`
-          : '❌ disabled';
+        const label = [
+            feature.enabled
+              ? `${getRolloutEmoji(feature.rolloutState)} ${feature.rolloutState} rollout`
+              : '❌ disabled',
+            feature.hasExtraSegments
+              ? '⚠️ unused segments'
+              : undefined,
+        ].filter(Boolean).join(' | ');
+        
         const hint = new vscode.InlayHint(
           feature.symbol.selectionRange.end.translate(0, 1),
           label
@@ -91,5 +104,3 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     return hint;
   }
 }
-
-

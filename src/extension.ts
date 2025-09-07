@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 
 import OutlineStore from './stores/outlineStore';
-import TextEditorCommandProvider from './providers/textEditorCommandProvider';
+import CommandProvider from './providers/commandProvider';
 import WindowEventHandlerProvider from './providers/windowEventHandlerProvider';
 import WorkspaceEventHandlerProvider from './providers/workspaceEventHandlerProvider';
 import FeatureNameLanguageProvider from './providers/featureNameLanguageProvider';
@@ -24,8 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
   const outlineStore = new OutlineStore();
   context.subscriptions.push(
     outlineStore,
-    ...new TextEditorCommandProvider(outlineStore, flagpoleFileDocumentFilter).register(),
-    ...new WindowEventHandlerProvider(outlineStore, flagpoleFileDocumentFilter).register(),
+    ...new CommandProvider(context).register(),
+    ...new WindowEventHandlerProvider(outlineStore, flagpoleFileDocumentFilter).register(context),
     ...new WorkspaceEventHandlerProvider(outlineStore, flagpoleFileDocumentFilter).register(),
     ...new FeatureNameLanguageProvider(outlineStore, flagpoleFileDocumentFilter).register(),
     ...new SegmentLanguageProvider(outlineStore, flagpoleFileDocumentFilter).register(),

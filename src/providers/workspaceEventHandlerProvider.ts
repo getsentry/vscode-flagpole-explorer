@@ -41,7 +41,6 @@ export default class WorkspaceEventHandlerProvider {
    */
   handleDidChangeTextDocument = async (event: vscode.TextDocumentChangeEvent) => {
     if (vscode.languages.match(this.documentFilter, event.document)) {
-      console.debug('workspace.didChangeTextDocument', event.reason);
       await this.outlineStore.fire({uri: event.document.uri});
     }
   };

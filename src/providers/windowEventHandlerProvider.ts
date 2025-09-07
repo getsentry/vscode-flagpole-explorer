@@ -8,6 +8,8 @@ import {
   FlagsByOwnerTreeViewProvider,
   FlagsByRolloutTreeViewProvider,
 } from './flagsByCategoryTreeProvider';
+import FlagsWithExtraSegmentsTreeViewProvider from './flagsWithExtraSegmentsTreeViewProvider';
+import EvaluateView from '../view/evaluateView';
 
 export default class WindowEventHandlerProvider {
   views: vscode.TreeView<CategoryTreeViewElement>[] = [];
@@ -17,7 +19,7 @@ export default class WindowEventHandlerProvider {
     private documentFilter: vscode.DocumentFilter,
   ) {}
 
-  public register(): vscode.Disposable[] {
+  public register(context: vscode.ExtensionContext): vscode.Disposable[] {
     this.views = [
       vscode.window.createTreeView(
         'sentryFlagpoleFlagsByName', 
@@ -39,11 +41,29 @@ export default class WindowEventHandlerProvider {
         'sentryFlagpoleFlagsByRollout', 
         {treeDataProvider: new FlagsByRolloutTreeViewProvider(this.outlineStore), showCollapseAll: true},
       ),
+      vscode.window.createTreeView(
+        'sentryFlagpoleFlagsWithExtraSegments', 
+        {treeDataProvider: new FlagsWithExtraSegmentsTreeViewProvider(this.outlineStore), showCollapseAll: true},
+      ),
     ];
+
+    const serializers = [];
+    if (vscode.window.registerWebviewPanelSerializer) {
+      serializers.push(
+        vscode.window.registerWebviewPanelSerializer(EvaluateView.viewType, {
+          async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: unknown) {
+            // Reset the webview options so we use latest uri for `localResourceRoots`.
+            webviewPanel.webview.options = EvaluateView.viewOptions(context.extensionUri);
+            EvaluateView.revive(webviewPanel, context.extensionUri);
+          }
+        }),
+      );
+    }
 
     return [
       vscode.window.onDidChangeActiveTextEditor(this.handleDidChangeActiveTextEditor),
       vscode.window.onDidChangeTextEditorSelection(this.handleDidChangeTextEditorSelection),
+      ...serializers,
       ...this.views,
     ];
   }

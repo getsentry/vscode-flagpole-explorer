@@ -24,6 +24,7 @@ export type LogicalFeature = {
   owner: string;
   segments: LogicalSegment[];
   rolloutState: RolloutState;
+  hasExtraSegments: boolean;
 };
 
 export type LogicalSegment = {
@@ -49,7 +50,7 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
   const owner = symbol.children.find(child => child.name === 'owner');
   const segments = symbol.children.find(child => child.name === 'segments')?.children.map(symbol => symbolToLogicalSegment(uri, symbol)) ?? [];
 
-  const rolloutState = segments?.map(segments => segments.rolloutState).reduce((prev, rollout) => {
+  const rolloutState = segments.map(segments => segments.rolloutState).reduce((prev, rollout) => {
     if (prev === '100%' || rollout === '100%') {
       return '100%';
     }
@@ -58,6 +59,8 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
     }
     return prev;
   }, '0%' as RolloutState);
+
+  const hasExtraSegments = (rolloutState === '100%') ?(segments.at(-1)?.conditions.length ?? 0) > 0 : false;
 
   return {
     symbol,
@@ -68,6 +71,7 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
     owner: owner?.detail ?? '',
     segments,
     rolloutState: rolloutState ?? '0%', // defaults to 0% of there are no segments
+    hasExtraSegments,
   };
 }
 

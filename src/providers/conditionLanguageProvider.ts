@@ -33,7 +33,7 @@ export default class ConditionLanguageProvider implements vscode.CodeLensProvide
       return new vscode.CodeLens(condition.symbol.range, {
         title: '$(symbol-operator)\u2000Add Condition',
         command: 'flagpole-explorer.addCondition',
-        arguments: [condition.symbol.range.end]
+        arguments: [condition.symbol.range.end],
       });
     });
   }

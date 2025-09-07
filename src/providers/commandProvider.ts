@@ -1,11 +1,10 @@
 import * as vscode from 'vscode';
-import OutlineStore from '../stores/outlineStore';
 import { OPERATORS, PROPERTIES } from '../types';
+import EvaluateView from '../view/evaluateView';
 
-export default class TextEditorCommandProvider {
+export default class CommandProvider {
   constructor(
-    private outlineStore: OutlineStore,
-    private documentFilter: vscode.DocumentFilter,
+    private context: vscode.ExtensionContext,
   ) {}
 
   public register(): vscode.Disposable[] {
@@ -13,6 +12,8 @@ export default class TextEditorCommandProvider {
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addCondition', this.addCondition),
+      vscode.commands.registerCommand('flagpole-explorer.show-evaluate-view', this.showEvaluateView),
+      vscode.commands.registerCommand('flagpole-explorer.evaluate-flag', this.evaluateFlag),
     ];
   }
 
@@ -99,5 +100,19 @@ export default class TextEditorCommandProvider {
       undoStopAfter: true,
       keepWhitespace: true,
     });
+  };
+
+  public showEvaluateView = (flag: string) => {
+    EvaluateView.createOrShow(this.context.extensionUri, flag);
+  };
+
+  public evaluateFlag = (flag: string) => {
+    console.log('evaluateFlag', flag);
+    if (EvaluateView.currentPanel) {
+      EvaluateView.currentPanel.selectFlag(flag);
+    } else {
+      EvaluateView.createOrShow(this.context.extensionUri, flag);
+    }
+    
   };
 }
