@@ -35,6 +35,32 @@
       },
       "yaml.maxItemsComputed": 10000
     },
+    "configuration": {
+      "title": "Flagpole Explorer",
+      "type": "object",
+      "properties": {
+        "flagpole-explorer.renderRolloutHints": {
+          "type": "boolean",
+          "description": "Show Rollout inline hints",
+          "default": true
+        },
+        "flagpole-explorer.renderMutationLenses": {
+          "type": "string",
+          "enum": [
+            "always",
+            "for selection",
+            "never"
+          ],
+          "description": "Show Add/Insert inline actions",
+          "default": "always"
+        },
+        "flagpole-explorer.renderEvalLens": {
+          "type": "boolean",
+          "description": "Show Evaluate inline action",
+          "default": false
+        }
+      }
+    },
     "commands": [
       {
         "category": "Flagpole",

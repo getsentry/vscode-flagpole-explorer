@@ -1,21 +1,27 @@
 import * as vscode from 'vscode';
-import OutlineStore from '../stores/outlineStore';
 import getRolloutEmoji from '../utils/getRolloutEmoji';
+import SelectedElementsStore from '../stores/selectedElementsStore';
 
 export default class SegmentLanguageProvider implements vscode.CodeLensProvider, vscode.InlayHintsProvider {
   constructor(
-    private outlineStore: OutlineStore,
-    private documentSelector: vscode.DocumentSelector,
-  ) {
-    this.outlineStore.event(() => {
-      this.didChangeCodeLenses.fire();
-    });
-  }
+    private selectedElementsStore: SelectedElementsStore,
+    private documentFilter: vscode.DocumentFilter,
+  ) {}
 
   public register(): vscode.Disposable[] {
     return [
-      vscode.languages.registerCodeLensProvider(this.documentSelector, this),
-      vscode.languages.registerInlayHintsProvider(this.documentSelector, this),
+      this.selectedElementsStore.onDidChangeSelected(() => {
+        const config = vscode.workspace.getConfiguration('flagpole-explorer');
+        if (config.get('renderMutationLenses') === 'for selection') {
+          this.didChangeCodeLenses.fire();
+        }
+      }),
+      this.selectedElementsStore.outlineStore.event(() => {
+        this.didChangeCodeLenses.fire();
+        this.didChangeInlayHints.fire();
+      }),
+      vscode.languages.registerCodeLensProvider(this.documentFilter, this),
+      vscode.languages.registerInlayHintsProvider(this.documentFilter, this),
     ];
   }
 
@@ -26,18 +32,48 @@ export default class SegmentLanguageProvider implements vscode.CodeLensProvider,
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.CodeLens> | undefined> {
-    const outline = await this.outlineStore.getOutline(document.uri);
+    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    if (config.get('renderMutationLenses') === 'never') {
+      return [];
+    }
+
+    const outline = await this.selectedElementsStore.outlineStore.getOutline(document.uri);
     if (!outline?.map) {
       return undefined;
     }
 
-    return outline.map.allSegments.map(segment => {
-      return new vscode.CodeLens(segment.symbol.range, {
-        title: '$(symbol-array)\u2000Add Segment',
-        command: 'flagpole-explorer.addSegment',
-        arguments: [segment.symbol.range.end]
-      });
-    });
+    const selections = SelectedElementsStore.selections.get(document.uri);
+    const selectedFeatures = config.get('renderMutationLenses') === 'always'
+      ? outline.map.allFeatures
+      : SelectedElementsStore.filterSelectedElements(
+        selections,
+        outline.map.allFeatures,
+      );
+    const selectedSegments = config.get('renderMutationLenses') === 'always'
+      ? outline.map.allSegments
+      : SelectedElementsStore.filterSelectedElements(
+        selections,
+        outline.map.allSegments,
+      );
+
+    return [
+      ...selectedFeatures.filter(feature => feature.segmentsSymbol).map(feature => {
+        return new vscode.CodeLens(feature.segmentsSymbol!.range, {
+          title: `$(symbol-array)\u2000Append Segment`,
+          tooltip: 'Add a new segment to the end of the list',
+          command: 'flagpole-explorer.addSegment',
+          arguments: [feature.segmentsSymbol!.range.end],
+        });
+      }),
+      ...selectedSegments.map(segment => {
+        return new vscode.CodeLens(segment.symbol.range, {
+          title: `$(symbol-array)\u2000Insert Segment`,
+          tooltip: 'Insert a segment here',
+          command: 'flagpole-explorer.addSegment',
+          arguments: [segment.symbol.range.start]
+        });
+      }),
+    ];
   }
 
   public resolveCodeLens?(
@@ -55,17 +91,21 @@ export default class SegmentLanguageProvider implements vscode.CodeLensProvider,
     range: vscode.Range,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.InlayHint>> {
-    const outline = await this.outlineStore.getOutline(document.uri);
-    const segments = outline?.map?.allSegments ?? [];
+    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    if (!config.get('renderRolloutHints')) {
+      return [];
+    }
 
-    return segments
-      .filter(segment => range.intersection(segment.symbol.selectionRange))
+    const outline = await this.selectedElementsStore.outlineStore.getOutline(document.uri);
+    const segmentsInRange = outline?.map?.allSegments
+      .filter(segment => range.intersection(segment.symbol.selectionRange)) ?? [];
+
+    return segmentsInRange
       .map(segment => {
         const hint = new vscode.InlayHint(
           segment.symbol.selectionRange.start.with({character: Number.MAX_SAFE_INTEGER}),
-          getRolloutEmoji(segment.rolloutState)
+          `${getRolloutEmoji(segment.rolloutState)} ${segment.rolloutState} rollout`
         );
-        hint.tooltip = `${segment.rolloutState} rollout`;
         hint.paddingLeft = true;
         return hint;
       });

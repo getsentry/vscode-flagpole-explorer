@@ -22,6 +22,7 @@ export type LogicalFeature = {
   created_at: string;
   enabled: boolean;
   owner: string;
+  segmentsSymbol: vscode.DocumentSymbol | undefined,
   segments: LogicalSegment[];
   rolloutState: RolloutState;
   hasExtraSegments: boolean;
@@ -32,12 +33,14 @@ export type LogicalSegment = {
   uri: vscode.Uri;
   name: string;
   rollout: number;
+  conditionsSymbol: vscode.DocumentSymbol | undefined,
   conditions: LogicalCondition[];
   rolloutState: RolloutState;
 };
 
 export type LogicalCondition = {
   symbol: vscode.DocumentSymbol,
+  parent: vscode.DocumentSymbol,  
   uri: vscode.Uri;
   property: string;
   operator: string;
@@ -48,7 +51,8 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
   const createdAt = symbol.children.find(child => child.name === 'created_at');
   const enabled = symbol.children.find(child => child.name === 'enabled');
   const owner = symbol.children.find(child => child.name === 'owner');
-  const segments = symbol.children.find(child => child.name === 'segments')?.children.map(symbol => symbolToLogicalSegment(uri, symbol)) ?? [];
+  const segmentsSymbol = symbol.children.find(child => child.name === 'segments');
+  const segments = segmentsSymbol?.children.map(symbol => symbolToLogicalSegment(uri, symbol)) ?? [];
 
   const rolloutState = segments.map(segments => segments.rolloutState).reduce((prev, rollout) => {
     if (prev === '100%' || rollout === '100%') {
@@ -69,6 +73,7 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
     created_at: createdAt?.detail ?? '',
     enabled: enabled?.detail !== 'false', // default to true if omitted
     owner: owner?.detail ?? '',
+    segmentsSymbol,
     segments,
     rolloutState: rolloutState ?? '0%', // defaults to 0% of there are no segments
     hasExtraSegments,
@@ -77,7 +82,8 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
 
 export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentSymbol): LogicalSegment {
   const rollout = symbol.children.find(child => child.name === 'rollout');
-  const conditions = symbol.children.find(child => child.name === 'conditions')?.children.map(symbol => symbolToLogicalCondition(uri, symbol)) ?? [];
+  const conditionsSymbol = symbol.children.find(child => child.name === 'conditions');
+  const conditions = conditionsSymbol?.children.map(symbol => symbolToLogicalCondition(uri, conditionsSymbol, symbol)) ?? [];
 
   const rolloutState = (function() {
     if (rollout?.detail === '0') {
@@ -96,17 +102,23 @@ export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentS
     uri,
     name: symbol.name,
     rollout: Number(rollout?.detail ?? 100), // default to 100 if omitted
-    conditions: conditions,
+    conditionsSymbol,
+    conditions,
     rolloutState,
   };
 }
 
-export function symbolToLogicalCondition(uri: vscode.Uri, symbol: vscode.DocumentSymbol): LogicalCondition {
+export function symbolToLogicalCondition(
+  uri: vscode.Uri,
+  parent: vscode.DocumentSymbol,
+  symbol: vscode.DocumentSymbol,
+): LogicalCondition {
   const operator = symbol.children.find(child => child.name === 'operator');
   const property = symbol.children.find(child => child.name === 'property');
   const value = symbol.children.find(child => child.name === 'value');
   return {
     symbol,
+    parent,
     uri,
     operator: operator?.detail ?? '',
     property: property?.detail ?? '',

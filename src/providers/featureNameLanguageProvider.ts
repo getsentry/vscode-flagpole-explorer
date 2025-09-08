@@ -1,22 +1,27 @@
 import * as vscode from 'vscode';
-import OutlineStore from '../stores/outlineStore';
 import getRolloutEmoji from '../utils/getRolloutEmoji';
+import SelectedElementsStore from '../stores/selectedElementsStore';
 
 export default class FeatureNameLanguageProvider implements vscode.CodeLensProvider, vscode.InlayHintsProvider {
   constructor(
-    private outlineStore: OutlineStore,
-    private documentSelector: vscode.DocumentSelector,
-  ) {
-    this.outlineStore.event(() => {
-      this.didChangeCodeLenses.fire();
-      this.didChangeInlayHints.fire();
-    });
-  }
+    private selectedElementsStore: SelectedElementsStore,
+    private documentFilter: vscode.DocumentFilter,
+  ) {}
 
   public register(): vscode.Disposable[] {
     return [
-      vscode.languages.registerCodeLensProvider(this.documentSelector, this),
-      vscode.languages.registerInlayHintsProvider(this.documentSelector, this),
+      this.selectedElementsStore.onDidChangeSelected(() => {
+        const config = vscode.workspace.getConfiguration('flagpole-explorer');
+        if (config.get('renderMutationLenses') === 'for selection') {
+          this.didChangeCodeLenses.fire();
+        }
+      }),
+      this.selectedElementsStore.outlineStore.event(() => {
+        this.didChangeCodeLenses.fire();
+        this.didChangeInlayHints.fire();
+      }),
+      vscode.languages.registerCodeLensProvider(this.documentFilter, this),
+      vscode.languages.registerInlayHintsProvider(this.documentFilter, this),
     ];
   }
 
@@ -27,33 +32,51 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.CodeLens> | undefined> {
-    const outline = await this.outlineStore.getOutline(document.uri);
+    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    if (config.get('renderMutationLenses') === 'never') {
+      return [];
+    }
+
+    const outline = await this.selectedElementsStore.outlineStore.getOutline(document.uri);
     if (!outline?.map) {
       return undefined;
     }
 
     const optionsLens = new vscode.CodeLens(outline.map.range, {
       title: '$(plus)\u2000Create Feature',
+      tooltip: 'Add a new feature to the end of the list',
       command: 'flagpole-explorer.addFeature',
-      arguments: [outline.map.selectionRange.end.translate(1)]
+      arguments: [outline.map.range.end.translate()]
     });
-    const featureLenses = outline.map.allFeatures.flatMap(feature => {
+
+    const selections = SelectedElementsStore.selections.get(document.uri);
+    const selectedFeatures = config.get('renderMutationLenses') === 'always'
+      ? outline.map.allFeatures
+      : SelectedElementsStore.filterSelectedElements(
+        selections,
+        outline.map.allFeatures,
+      );
+
+    const featureLenses = selectedFeatures.flatMap(feature => {
       return [
         new vscode.CodeLens(feature.symbol.range, {
-          title: '$(plus)\u2000Create Feature',
+          title: '$(plus)\u2000Insert Feature',
+          tooltip: 'Insert a feature here',
           command: 'flagpole-explorer.addFeature',
-          arguments: [feature.symbol.range.end]
+          arguments: [feature.symbol.range.start]
         }),
-        // new vscode.CodeLens(feature.symbol.range, {
-        //   title: '$(beaker)\u2000Test',
-        //   command: 'flagpole-explorer.evaluate-flag',
-        //   arguments: [feature.name]
-        // }),
+        config.get('renderEvalLens')
+          ? new vscode.CodeLens(feature.symbol.range, {
+            title: '$(beaker)\u2000Evaluate',
+            command: 'flagpole-explorer.evaluate-flag',
+            arguments: [feature.name]
+          })
+          : undefined,
       ];
     });
     return [
       optionsLens,
-      ...featureLenses,
+      ...featureLenses.filter<vscode.CodeLens>(_ => !!_),
     ];
   }
 
@@ -72,11 +95,16 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     range: vscode.Range,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.InlayHint>> {
-    const outline = await this.outlineStore.getOutline(document.uri);
-    const features = outline?.map?.allFeatures ?? [];
+    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    if (!config.get('renderRolloutHints')) {
+      return [];
+    }
+    
+    const outline = await this.selectedElementsStore.outlineStore.getOutline(document.uri);
+    const featuresInRange = outline?.map?.allFeatures
+      .filter(feature => range.intersection(feature.symbol.selectionRange)) ?? [];
 
-    return features
-      .filter(feature => range.intersection(feature.symbol.selectionRange))
+    return featuresInRange
       .map(feature => {
         const label = [
             feature.enabled
@@ -91,7 +119,6 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
           feature.symbol.selectionRange.end.translate(0, 1),
           label
         );
-        hint.tooltip = `${feature.rolloutState} rollout`;
         hint.paddingLeft = true;
         return hint;
       });

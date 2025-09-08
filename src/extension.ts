@@ -9,6 +9,7 @@ import WorkspaceEventHandlerProvider from './providers/workspaceEventHandlerProv
 import FeatureNameLanguageProvider from './providers/featureNameLanguageProvider';
 import SegmentLanguageProvider from './providers/segmentLanguageProvider';
 import ConditionLanguageProvider from './providers/conditionLanguageProvider';
+import SelectedElementsStore from './stores/selectedElementsStore';
 
 const flagpoleFileDocumentFilter: vscode.DocumentFilter = {
   language: 'yaml',
@@ -22,14 +23,16 @@ export function activate(context: vscode.ExtensionContext) {
   console.log('Activating Flagpole extension...');
 
   const outlineStore = new OutlineStore();
+  const selectedElementsStore = new SelectedElementsStore(outlineStore, flagpoleFileDocumentFilter);
   context.subscriptions.push(
     outlineStore,
+    ...selectedElementsStore.register(),
     ...new CommandProvider(context).register(),
     ...new WindowEventHandlerProvider(outlineStore, flagpoleFileDocumentFilter).register(context),
     ...new WorkspaceEventHandlerProvider(outlineStore, flagpoleFileDocumentFilter).register(),
-    ...new FeatureNameLanguageProvider(outlineStore, flagpoleFileDocumentFilter).register(),
-    ...new SegmentLanguageProvider(outlineStore, flagpoleFileDocumentFilter).register(),
-    ...new ConditionLanguageProvider(outlineStore, flagpoleFileDocumentFilter).register(),
+    ...new ConditionLanguageProvider(selectedElementsStore, flagpoleFileDocumentFilter).register(),
+    ...new SegmentLanguageProvider(selectedElementsStore, flagpoleFileDocumentFilter).register(),
+    ...new FeatureNameLanguageProvider(selectedElementsStore, flagpoleFileDocumentFilter).register(),
   );
 
   vscode.workspace.findFiles('**/flagpole.yaml', '**/node_modules/**').then(found => {

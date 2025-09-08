@@ -61,7 +61,7 @@ export default class WindowEventHandlerProvider {
     }
 
     return [
-      vscode.window.onDidChangeActiveTextEditor(this.handleDidChangeActiveTextEditor),
+      // vscode.window.onDidChangeActiveTextEditor(this.handleDidChangeActiveTextEditor),
       vscode.window.onDidChangeTextEditorSelection(this.handleDidChangeTextEditorSelection),
       ...serializers,
       ...this.views,
@@ -74,7 +74,7 @@ export default class WindowEventHandlerProvider {
    * to `undefined`.
    */
   handleDidChangeActiveTextEditor = (editor: vscode.TextEditor | undefined) => {
-    // TODO: maybe this does nothing?
+    // TODO: Do we need this?
   };
 
   /**
@@ -93,7 +93,7 @@ export default class WindowEventHandlerProvider {
           .forEach(feature => {
             this.views?.forEach(view => {
               if (view.visible) {
-                view.reveal(feature);
+                view.reveal(feature).then(() => {}, () => {});
               }
             });
           });

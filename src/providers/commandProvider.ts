@@ -56,22 +56,31 @@ export default class CommandProvider {
 
     const snippet = new vscode.SnippetString();
 
-    const lineAbove = textEditor.document.lineAt(target.line - 1);
-    if (lineAbove.text === 'segments: []') {
-      // need to kill the replace line above
-      snippet.appendText('    segments:\n');
+    const lineAbove = textEditor.document.lineAt(target.line);
+    if (lineAbove.text.endsWith('segments: []')) {
+      snippet
+        .appendText('    segments:\n')
+        .appendText('      - name: ').appendPlaceholder('new segment').appendText('\n')
+        .appendText('        rollout: ').appendPlaceholder('0').appendText('\n')
+        .appendText('        conditions: []\n');
+
+      textEditor.insertSnippet(snippet, new vscode.Range(target, target.translate(1)), {
+        undoStopBefore: true,
+        undoStopAfter: true,
+        keepWhitespace: true,
+      });
+    } else {
+      snippet
+        .appendText('      - name: ').appendPlaceholder('new segment').appendText('\n')
+        .appendText('        rollout: ').appendPlaceholder('0').appendText('\n')
+        .appendText('        conditions: []\n');
+
+      textEditor.insertSnippet(snippet, target, {
+        undoStopBefore: true,
+        undoStopAfter: true,
+        keepWhitespace: true,
+      });
     }
-
-    snippet
-      .appendText('      - name: ').appendPlaceholder('new segment').appendText('\n')
-      .appendText('        rollout: ').appendPlaceholder('0').appendText('\n')
-      .appendText('        conditions: []\n');
-
-    textEditor.insertSnippet(snippet, target, {
-      undoStopBefore: true,
-      undoStopAfter: true,
-      keepWhitespace: true,
-    });
   };
 
   public addCondition = (
@@ -84,22 +93,34 @@ export default class CommandProvider {
 
     const snippet = new vscode.SnippetString();
 
-    const lineAbove = textEditor.document.lineAt(target.line - 1);
-    if (lineAbove.text === 'segments: []') {
-      // need to kill the replace line above
-      snippet.appendText('    segments:');
+    console.log('adding condition', target);
+    const lineAt = textEditor.document.lineAt(target.line);
+    console.log('lineAt', lineAt.text);
+
+    if (lineAt.text.endsWith('conditions: []')) {
+      snippet
+        .appendText('      - conditions:\n')
+        .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
+        .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
+        .appendText('            value: []\n');
+
+      textEditor.insertSnippet(snippet, new vscode.Range(target, target.translate(1)), {
+        undoStopBefore: true,
+        undoStopAfter: true,
+        keepWhitespace: true,
+      });
+    } else {
+      snippet
+        .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
+        .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
+        .appendText('            value: []\n');
+
+      textEditor.insertSnippet(snippet, target, {
+        undoStopBefore: true,
+        undoStopAfter: true,
+        keepWhitespace: true,
+      });
     }
-
-    snippet
-      .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
-      .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
-      .appendText('            conditions: []\n');
-
-    textEditor.insertSnippet(snippet, target, {
-      undoStopBefore: true,
-      undoStopAfter: true,
-      keepWhitespace: true,
-    });
   };
 
   public showEvaluateView = (flag: string) => {
