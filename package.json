@@ -58,6 +58,21 @@
           "type": "boolean",
           "description": "Show Evaluate inline action",
           "default": false
+        },
+        "flagpole-explorer.eval.sentry-workspace": {
+          "type": "string",
+          "description": "The location of the getsentry/sentry workspace",
+          "default": "$HOME/code/sentry"
+        },
+        "flagpole-explorer.eval.bin": {
+          "type": "string",
+          "description": "The relative path of the evaluation binary",
+          "default": "./bin/flagpole"
+        },
+        "flagpole-explorer.eval.flagpole-file": {
+          "type": "string",
+          "description": "Location of the flagpole.yaml flag definition file",
+          "default": "$HOME/code/sentry-options-automator/options/default/flagpole.yaml"
         }
       }
     },
@@ -79,6 +94,11 @@
         "command": "flagpole-explorer.addCondition",
         "title": "Add Condition",
         "when": "resourceFilename == flagpole.yaml"
+      },
+      {
+        "category": "Flagpole",
+        "command": "flagpole-explorer.show-evaluate-view",
+        "title": "Evaluate Flag"
       }
     ],
     "viewsContainers": {
@@ -154,14 +174,13 @@
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
-  "dependencies": {
-    "@types/vscode-webview": "^1.57.5"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@types/mocha": "^10.0.10",
     "@types/node": "20.x",
     "@types/vscode": "1.99.0",
+    "@types/vscode-webview": "^1.57.5",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
     "@vscode/test-cli": "^0.0.11",

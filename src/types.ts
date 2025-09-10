@@ -86,33 +86,34 @@ export type PropertyName =
   | 'user_is-staff'
   | 'user_is-superuser';
 
+export type PropertyType = 'number' | 'string' | 'boolean';
 
-export const PROPERTIES: PropertyName[] = [
-  'organization_id',
-  'organization_is-early-adopter',
-  'organization_name',
-  'organization_slug',
-  'project_id',
-  'project_name',
-  'project_platform',
-  'project_slug',
-  'sentry_region',
-  'sentry_singletenant',
-  'subscription_is-free',
-  'subscription_is-partner',
-  'subscription_missing',
-  'subscription_plan-family',
-  'subscription_plan-tier',
-  'subscription_plan-trial-plan-family',
-  'subscription_plan-trial-plan-tier',
-  'subscription_plan-trial-plan',
-  'subscription_plan',
-  'user_domain',
-  'user_email',
-  'user_id',
-  'user_is-staff',
-  'user_is-superuser',
-];
+export const PROPERTIES: Record<PropertyName, PropertyType> = {
+  'organization_id': 'string',
+  'organization_is-early-adopter': 'string',
+  'organization_name': 'string',
+  'organization_slug': 'string',
+  'project_id': 'string',
+  'project_name': 'string',
+  'project_platform': 'string',
+  'project_slug': 'string',
+  'sentry_region': 'string',
+  'sentry_singletenant': 'string',
+  'subscription_is-free': 'string',
+  'subscription_is-partner': 'string',
+  'subscription_missing': 'string',
+  'subscription_plan-family': 'string',
+  'subscription_plan-tier': 'string',
+  'subscription_plan-trial-plan-family': 'string',
+  'subscription_plan-trial-plan-tier': 'string',
+  'subscription_plan-trial-plan': 'string',
+  'subscription_plan': 'string',
+  'user_domain': 'string',
+  'user_email': 'string',
+  'user_id': 'string',
+  'user_is-staff': 'string',
+  'user_is-superuser': 'string',
+};
 
 export const OPERATORS: OperatorName[] = [
   'in',

@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { OPERATORS, PROPERTIES } from '../types';
 import EvaluateView from '../view/evaluateView';
+import { CommandRunner, Command } from './terminalProvider';
 
 export default class CommandProvider {
   constructor(
@@ -100,7 +101,7 @@ export default class CommandProvider {
     if (lineAt.text.endsWith('conditions: []')) {
       snippet
         .appendText('      - conditions:\n')
-        .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
+        .appendText('          - property: ').appendChoice(Object.keys(PROPERTIES)).appendText('\n')
         .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
         .appendText('            value: []\n');
 
@@ -111,7 +112,7 @@ export default class CommandProvider {
       });
     } else {
       snippet
-        .appendText('          - property: ').appendChoice(PROPERTIES).appendText('\n')
+        .appendText('          - property: ').appendChoice(Object.keys(PROPERTIES)).appendText('\n')
         .appendText('            operator: ').appendChoice(OPERATORS).appendText('\n')
         .appendText('            value: []\n');
 
@@ -123,17 +124,88 @@ export default class CommandProvider {
     }
   };
 
-  public showEvaluateView = (flag: string) => {
-    EvaluateView.createOrShow(this.context.extensionUri, flag);
+  public showEvaluateView = (featureName: string, featureDefinition: unknown) => {
+    EvaluateView.createOrShow(this.context.extensionUri, featureName, featureDefinition);
+  };
+      
+  public evaluateFlag = async (
+    flagName: string = 'feature.organizations:use-case-insensitive-codeowners',
+    context: Object = {
+      organization_slug: 'sentry'
+    },
+  ) => {
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.eval');
+    const bin = config.get('bin', './bin/flagpole');
+    const cwd = config.get('sentry-workspace', '~/code/sentry');
+    const flagpoleFile = config.get('flagpole-file');
+
+    console.log('Evaluating:', {
+      cwd,
+      bin,
+      flagpoleFile,
+      flagName,
+      context
+    });
+
+    const runner = await CommandRunner.factory(vscode.window.createTerminal({
+      name: bin,
+      iconPath: vscode.Uri.file('./dist/static/flag.svg'),
+      location: vscode.TerminalLocation.Panel,
+      isTransient: true,
+    }), 5_000);
+    await runner.run({bin: 'cd', args: [cwd]}, {timeout: 3_000}).execution;
+    
+    const flagpoleCmd = runner.run(
+      {bin, args: [
+        `--flagpole-file=${flagpoleFile}`,
+        `--flag-name=${flagName}`,
+        `--`,
+        // JANKY!!!
+        // Double-stringify to escape quotes in a way that works for the shell too.
+        `${JSON.stringify(JSON.stringify(context))}` 
+      ]},
+      {timeout: 5_000}
+    );
+    
+    const outputTerminal = vscode.window.createTerminal({
+      name: 'flagpole',
+      pty: new CommandEchoPty(flagpoleCmd),
+      iconPath: vscode.Uri.file('./dist/static/flag.svg'),
+      location: vscode.TerminalLocation.Panel,
+      isTransient: true,
+    });
+    outputTerminal.show(true);
+
+    await flagpoleCmd.execution;
+
+    runner.terminal.dispose();
+  };
+}
+
+class CommandEchoPty implements vscode.Pseudoterminal {
+  private writeEmitter = new vscode.EventEmitter<string>();
+  public onDidWrite = this.writeEmitter.event;
+
+  private closeEmitter = new vscode.EventEmitter<void>();
+  public onDidClose = this.closeEmitter.event;
+
+  constructor(
+    private command: Command,
+  ) {}
+
+  public async open() {
+    for await (const line of this.command.output) {
+      this.writeEmitter.fire(line);
+    }
+
+    this.writeEmitter.fire('Press any key to exit');
   };
 
-  public evaluateFlag = (flag: string) => {
-    console.log('evaluateFlag', flag);
-    if (EvaluateView.currentPanel) {
-      EvaluateView.currentPanel.selectFlag(flag);
-    } else {
-      EvaluateView.createOrShow(this.context.extensionUri, flag);
-    }
-    
+  public close() {
+    //
   };
+
+  handleInput(data: string): void {
+    this.closeEmitter.fire();
+  }
 }

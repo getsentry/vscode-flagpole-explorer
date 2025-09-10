@@ -1,17 +1,18 @@
 import * as vscode from 'vscode';
+import { PROPERTIES } from '../types';
 
 export default class EvaluateView {
   public static readonly viewType = 'flagpole.evaluate';
 
   public static currentPanel: EvaluateView | undefined;
 
-  public static createOrShow(extensionUri: vscode.Uri, flag: string) {
+  public static createOrShow(extensionUri: vscode.Uri, flagName: string, flagDefinition: unknown) {
     const column = vscode.ViewColumn.Beside;
 
     // If we already have a panel, show it.
     if (EvaluateView.currentPanel) {
       EvaluateView.currentPanel._panel.reveal(column);
-      EvaluateView.currentPanel.selectFlag(flag);
+      EvaluateView.currentPanel.selectFlag(flagName, flagDefinition);
       return;
     }
 
@@ -24,7 +25,7 @@ export default class EvaluateView {
     );
 
     EvaluateView.currentPanel = new EvaluateView(panel, extensionUri);
-    EvaluateView.currentPanel.selectFlag(flag);
+    EvaluateView.currentPanel.selectFlag(flagName, flagDefinition);
   }
 
   public static revive(panel: vscode.WebviewPanel, extensionUri: vscode.Uri) {
@@ -65,34 +66,9 @@ export default class EvaluateView {
     this._panel.webview.onDidReceiveMessage(
     	message => {
     		switch (message.command) {
-    			case 'eval-flag': {
-            const { exec, execFile } = require('node:child_process');
-            const cwd = '/Users/ryan953/code/sentry';
-            // const binpath = 'bin/flagpole';
-            const cmd = [
-              '/Users/ryan953/code/sentry/bin/flagpole',
-              '--flagpole-file=/Users/ryan953/code/sentry-options-automator/options/default/flagpole.yaml',
-              '--flag-name=feature.organizations:use-case-insensitive-codeowners',
-              '--context=\'{"organization_slug": "sentry"}\''
-            ].join(' ');
-
-            console.log('Did get eval-flag', {cwd, cmd});
-            
-            const flagEval = exec(cmd, { cwd, });
-
-            console.log({flagEval});
-
-            flagEval.stdout.on('data', (data: Uint8Array) => {
-              console.log(`stdout: ${data}`);
-            });
-            flagEval.stderr.on('data', (data: Uint8Array) => {
-              console.error(`stderr: ${data}`);
-            });
-            flagEval.on('close', (code: number) => {
-              console.log(`close: ${code}`);
-            });
-
-    				// vscode.window.showErrorMessage(message.text);
+    			case 'evaluate-flag': {
+            console.log('got evaluate-flag from the web view... forwarding it.', message);
+            vscode.commands.executeCommand('flagpole-explorer.evaluate-flag', message.flag);
     				return;
           }
     		}
@@ -104,13 +80,11 @@ export default class EvaluateView {
 
   private _update() {
     const webview = this._panel.webview;
-    // this._panel.title = catName;
     this._panel.webview.html = this._getHtmlForWebview(webview);
   }
 
-  public selectFlag(flag: string) {
-    console.log('selectFlag', flag);
-    this._panel.webview.postMessage({ command: 'select-flag', flag });
+  public selectFlag(flagName: string, flagDefinition: unknown) {
+    this._panel.webview.postMessage({ command: 'select-flag', flagName, flagDefinition });
   }
 
   public dispose() {
@@ -125,22 +99,57 @@ export default class EvaluateView {
   }
 
   private _getHtmlForWebview(webview: vscode.Webview) {
-    // Local path to main script run in the webview
-    const scriptPathOnDisk = vscode.Uri.joinPath(this._extensionUri, 'media', 'main.js');
+    
 
-    // And the uri we use to load this script in the webview
-    const scriptUri = webview.asWebviewUri(scriptPathOnDisk);
+    const styles = [
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'button.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'checkbox.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'collapsible.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'divider.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'form-container.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'form-group.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'form-helpers.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'label.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'select.css')),
+      webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode-elements-lite', 'textfield.css')),
+    ];
 
-    // Local path to css styles
-    const styleResetPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'reset.css');
-    const stylesPathMainPath = vscode.Uri.joinPath(this._extensionUri, 'media', 'vscode.css');
-
-    // Uri to load styles into webview
-    const stylesResetUri = webview.asWebviewUri(styleResetPath);
-    const stylesMainUri = webview.asWebviewUri(stylesPathMainPath);
+    const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'evaluate-view.js'));
 
     // Use a nonce to only allow specific scripts to be run
     const nonce = getNonce();
+
+    const propertyInputs = Object.entries(PROPERTIES).map(([name, type]) => {
+      switch (type) {
+        case 'number':
+        case 'string':
+          return `
+          <div class="vscode-form-helper">
+            <div class="vscode-textfield">
+              <label for="${name}" class="vscode-label">
+                ${name}
+              </label>
+              <br/>
+              <input type="text" name="${name}" id="${name}" />
+            </div>
+          </div>
+          `;
+        case 'boolean':
+          return `
+          <div class="vscode-form-helper">
+            <div class="vscode-checkbox">
+              <label for="${name}" class="vscode-label">
+                ${name}
+              </label>
+              <br/>
+              <input type="checkbox" name="${name}" id="${name}" />
+            </div>
+          </div>
+          `;
+      }
+    });
 
     return `<!DOCTYPE html>
       <html lang="en">
@@ -155,12 +164,25 @@ export default class EvaluateView {
 
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <link href="${stylesResetUri}" rel="stylesheet">
-        <link href="${stylesMainUri}" rel="stylesheet">
+        ${styles.map(uri => `<link href="${uri}" rel="stylesheet">`).join('')}
       </head>
       <body>
-        <h1>Hello world!</h1>
-        <h1 id="current-flag"></h1>
+        <h1>Evaluate: <span id="current-flag"></span></h1>
+
+        <div class="vscode-form-container">
+          <form id="request-eval">
+            <input type="hidden" id="flagName" name="flagName" value="" />
+
+            <div class="vscode-form-group vertical">
+              ${propertyInputs.join('')}
+            </div>
+
+            <button type="submit" class="vscode-action-button">
+              <i class="codicon codicon-plus" aria-hidden="true"></i>
+              <span class="label">Evaluate Nowwn</span>
+            </button>
+          </form>
+        </div>
 
         <script nonce="${nonce}" src="${scriptUri}"></script>
       </body>

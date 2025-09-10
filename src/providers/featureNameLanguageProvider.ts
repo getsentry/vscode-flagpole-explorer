@@ -68,8 +68,8 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
         config.get('renderEvalLens')
           ? new vscode.CodeLens(feature.symbol.range, {
             title: '$(beaker)\u2000Evaluate',
-            command: 'flagpole-explorer.evaluate-flag',
-            arguments: [feature.name]
+            command: 'flagpole-explorer.show-evaluate-view',
+            arguments: [feature.name, feature]
           })
           : undefined,
       ];

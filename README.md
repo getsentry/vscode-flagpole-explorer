@@ -34,6 +34,8 @@ Notice the 'Debug Console' in the host window. Any `console.log` messages from t
 The extension will rebuild in the background as you edit files, but the debug window will not reload to show changes.
 To reload the debug window with the latest build of the extension run 'Developer: Reload Window' (`CTRL + OPT + CMD + L`) from the command palette.
 
+You can [debug webviews](https://code.visualstudio.com/api/extension-guides/webview#inspecting-and-debugging-webviews) as well (such as the Evalutate Feature view). From within the window that contains the running extenion, run the command 'Developer: Open Webview Developer Tools' from the command palette to open a chrome devtools instance where you can find the iframe for your webview.
+
 ## Publishing
 
 New versions will be automatically published into the Visual Studio Marketplace via the Github Actions CI pipeline.
