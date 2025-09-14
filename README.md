@@ -1,8 +1,7 @@
 # Sentry Flagpole Explorer
 
-A VSCode/Cursor/etc extension to aid in navigating & reading Sentry's internal feature flag definitions.
+A VSCode/Cursor/etc extension to aid in navigating & editing Sentry's internal feature flag definitions.
 
-![](./example-vscode-all-views.png)
 
 ## 🚀 Installation
 
@@ -13,11 +12,37 @@ You can install the latest version of Flagpole Explorer from the Visual Studio M
 
 If you're dealing with Flagpole inside Sentry, then the extension is already part of the recommended list for the repo.
 
+
+## ✨ Features
+
+- In the Activity bar you can view the 'Flagpole' view which contains:
+    - Multiple tree views to navigate flags by: Name, Owner, Rollout state, Enabled true/false, Created At Date
+    - There's also a tree view that lists flags which have problems detected within them. For example, flags where a segment is listed after a no-condition 'GA' segment.
+    
+- Within the editor's text area you'll notice
+    - Icons to indicate the rollout status of a flag
+    - Icons to indicate the rollout status of a given segment within a flag
+    - Buttons to make it easier to insert or append new flags/segments/conditions within the existing file
+    - A button to 'Evaluate' a flag. Test conditions offline before committing your change
+
+- Colors/Icons are used to indicate flags that are:
+    - Green: fully rolled out, at least one segment has no conditions, the flag is true for all.
+    - Orange: partially rolled out, segments have conditions or their rollout percent is not 100
+    - Red: not enabled, the flag has `enabled:false` or no segments are rolled out
+
+
+## 🖼️ Screenshots
+
+![](./example-vscode-views.png)
+![](./example-vscode-evaluate.png)
+
+
 ## 🐛 Bugs
 
 Please file an issue [here](https://github.com/getsentry/vscode-flagpole-explorer/issues) for feature requests, bugs, missing documentation, or unexpected behavior.
 
 Pull Requests are welcome and encouraged!
+
 
 ## 🖥️ Developing
 
@@ -36,6 +61,7 @@ To reload the debug window with the latest build of the extension run 'Developer
 
 You can [debug webviews](https://code.visualstudio.com/api/extension-guides/webview#inspecting-and-debugging-webviews) as well (such as the Evalutate Feature view). From within the window that contains the running extenion, run the command 'Developer: Open Webview Developer Tools' from the command palette to open a chrome devtools instance where you can find the iframe for your webview.
 
+
 ## Publishing
 
 New versions will be automatically published into the Visual Studio Marketplace via the Github Actions CI pipeline.
@@ -48,6 +74,8 @@ Publishing depends on a few security tokens:
     This token has a 1 year expiration, and will need to be rotated.
     Scopes: `Extensions=Read & Manage` & `Marketplace=Publish`
 - Publsh to OVSX Registry
+
+
 ## License
 
-[MIT ©](https://github.com/getsentry/cookie-sync/blob/main/LICENCE)
+[MIT ©](https://github.com/getsentry/vscode-flagpole-explorer/blob/main/LICENSE)
