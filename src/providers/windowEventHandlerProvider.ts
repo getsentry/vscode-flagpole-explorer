@@ -15,11 +15,13 @@ export default class WindowEventHandlerProvider {
   views: vscode.TreeView<CategoryTreeViewElement>[] = [];
 
   constructor(
+    private context: vscode.ExtensionContext,
     private outlineStore: OutlineStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}
 
-  public register(context: vscode.ExtensionContext): vscode.Disposable[] {
+  public register(): vscode.Disposable[] {
+    const extensionUri = this.context.extensionUri;
     this.views = [
       vscode.window.createTreeView(
         'sentryFlagpoleFlagsByName', 
@@ -53,8 +55,8 @@ export default class WindowEventHandlerProvider {
         vscode.window.registerWebviewPanelSerializer(EvaluateView.viewType, {
           async deserializeWebviewPanel(webviewPanel: vscode.WebviewPanel, state: unknown) {
             // Reset the webview options so we use latest uri for `localResourceRoots`.
-            webviewPanel.webview.options = EvaluateView.viewOptions(context.extensionUri);
-            EvaluateView.revive(webviewPanel, context.extensionUri);
+            webviewPanel.webview.options = EvaluateView.viewOptions(extensionUri);
+            EvaluateView.revive(webviewPanel, extensionUri);
           }
         }),
       );

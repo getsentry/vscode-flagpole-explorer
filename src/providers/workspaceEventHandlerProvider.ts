@@ -5,9 +5,7 @@ export default class WorkspaceEventHandlerProvider {
   public constructor(
     private outlineStore: OutlineStore,
     private documentFilter: vscode.DocumentFilter,
-  ) {
-    // this.warmFilesInWorkspace();
-  }
+  ) {}
 
   public register(): vscode.Disposable[] {
     return [
@@ -23,15 +21,6 @@ export default class WorkspaceEventHandlerProvider {
       vscode.workspace.onDidRenameFiles(this.handleDidRenameFiles),
       vscode.workspace.onDidChangeWorkspaceFolders(this.handleDidChangeWorkspaceFolders),
     ];
-  }
-
-  async warmFilesInWorkspace() {
-    if (this.documentFilter.pattern) {
-      const uris = await vscode.workspace.findFiles(this.documentFilter.pattern, '**/node_modules/**');
-      for (const uri of uris) {
-        await this.outlineStore.fire({uri});
-      }
-    }
   }
 
   /**
@@ -75,7 +64,12 @@ export default class WorkspaceEventHandlerProvider {
    * to point to the first workspace folder.
    */
   handleDidChangeWorkspaceFolders = (event: vscode.WorkspaceFoldersChangeEvent) => {
-    console.debug('workspace.didChangeWorkspaceFolders', event);
-    this.warmFilesInWorkspace();
+    event.added.forEach(() => {
+      if (this.documentFilter.pattern) {
+        vscode.workspace.findFiles(this.documentFilter.pattern, '**/node_modules/**').then(found => {
+          found.forEach(uri => this.outlineStore.fire({uri}));
+        });
+      }
+    });
   };
 }

@@ -39,12 +39,17 @@
       "title": "Flagpole Explorer",
       "type": "object",
       "properties": {
-        "flagpole-explorer.renderRolloutHints": {
+        "flagpole-explorer.flagpoleFilePattern": {
+          "type": "string",
+          "description": "Pattern to use to match the flagpole file",
+          "default": "**/flagpole.yaml"
+        },
+        "flagpole-explorer.render.renderRolloutHints": {
           "type": "boolean",
           "description": "Show Rollout inline hints",
           "default": true
         },
-        "flagpole-explorer.renderMutationLenses": {
+        "flagpole-explorer.render.renderMutationLenses": {
           "type": "string",
           "enum": [
             "always",
@@ -54,19 +59,19 @@
           "description": "Show Add/Insert inline actions",
           "default": "always"
         },
-        "flagpole-explorer.renderEvalLens": {
+        "flagpole-explorer.render.renderEvalLens": {
           "type": "boolean",
           "description": "Show Evaluate inline action",
-          "default": false
+          "default": true
         },
         "flagpole-explorer.eval.sentry-workspace": {
           "type": "string",
-          "description": "The location of the getsentry/sentry workspace",
+          "description": "The location of the `getsentry/sentry` workspace",
           "default": "$HOME/code/sentry"
         },
         "flagpole-explorer.eval.bin": {
           "type": "string",
-          "description": "The relative path of the evaluation binary",
+          "description": "The path of the evaluation binary, relative to the `getsentry/sentry` workspace",
           "default": "./bin/flagpole"
         },
         "flagpole-explorer.eval.flagpole-file": {

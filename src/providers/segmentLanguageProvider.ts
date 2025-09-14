@@ -11,7 +11,7 @@ export default class SegmentLanguageProvider implements vscode.CodeLensProvider,
   public register(): vscode.Disposable[] {
     return [
       this.selectedElementsStore.onDidChangeSelected(() => {
-        const config = vscode.workspace.getConfiguration('flagpole-explorer');
+        const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
         if (config.get('renderMutationLenses') === 'for selection') {
           this.didChangeCodeLenses.fire();
         }
@@ -32,7 +32,7 @@ export default class SegmentLanguageProvider implements vscode.CodeLensProvider,
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.CodeLens> | undefined> {
-    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
     if (config.get('renderMutationLenses') === 'never') {
       return [];
     }
@@ -91,7 +91,7 @@ export default class SegmentLanguageProvider implements vscode.CodeLensProvider,
     range: vscode.Range,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.InlayHint>> {
-    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
     if (!config.get('renderRolloutHints')) {
       return [];
     }

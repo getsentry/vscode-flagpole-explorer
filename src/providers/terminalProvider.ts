@@ -36,7 +36,7 @@ export class CommandRunner {
   }
 }
 
-export class Command {
+class Command {
   public execution: Promise<vscode.TerminalShellExecution>;
 
   constructor(
@@ -57,5 +57,33 @@ export class Command {
         }
       });
     });
+  }
+}
+
+export class StreamPty implements vscode.Pseudoterminal {
+  private writeEmitter = new vscode.EventEmitter<string>();
+  public onDidWrite = this.writeEmitter.event;
+
+  private closeEmitter = new vscode.EventEmitter<void>();
+  public onDidClose = this.closeEmitter.event;
+
+  constructor(
+    private stream: AsyncIterable<string>,
+  ) {}
+
+  public async open() {
+    for await (const line of this.stream) {
+      this.writeEmitter.fire(line);
+    }
+
+    this.writeEmitter.fire('Press any key to exit');
+  };
+
+  public close() {
+    //
+  };
+
+  handleInput(data: string): void {
+    this.closeEmitter.fire();
   }
 }

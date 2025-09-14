@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import getRolloutEmoji from '../utils/getRolloutEmoji';
 import SelectedElementsStore from '../stores/selectedElementsStore';
+import { logicalFeatureToFeature } from '../transform/transformers';
 
 export default class FeatureNameLanguageProvider implements vscode.CodeLensProvider, vscode.InlayHintsProvider {
   constructor(
@@ -11,7 +12,7 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
   public register(): vscode.Disposable[] {
     return [
       this.selectedElementsStore.onDidChangeSelected(() => {
-        const config = vscode.workspace.getConfiguration('flagpole-explorer');
+        const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
         if (config.get('renderMutationLenses') === 'for selection') {
           this.didChangeCodeLenses.fire();
         }
@@ -32,7 +33,7 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.CodeLens> | undefined> {
-    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
     if (config.get('renderMutationLenses') === 'never') {
       return [];
     }
@@ -69,7 +70,7 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
           ? new vscode.CodeLens(feature.symbol.range, {
             title: '$(beaker)\u2000Evaluate',
             command: 'flagpole-explorer.show-evaluate-view',
-            arguments: [feature.name, feature]
+            arguments: [feature]
           })
           : undefined,
       ];
@@ -95,7 +96,7 @@ export default class FeatureNameLanguageProvider implements vscode.CodeLensProvi
     range: vscode.Range,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.InlayHint>> {
-    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
     if (!config.get('renderRolloutHints')) {
       return [];
     }

@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { OPERATORS, PROPERTIES } from '../types';
 import EvaluateView from '../view/evaluateView';
-import { CommandRunner, Command } from './terminalProvider';
+import { CommandRunner, StreamPty } from './terminalProvider';
+import { LogicalFeature, logicalFeatureToFeature } from '../transform/transformers';
 
 export default class CommandProvider {
   constructor(
@@ -9,6 +10,7 @@ export default class CommandProvider {
   ) {}
 
   public register(): vscode.Disposable[] {
+    
     return [
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
@@ -24,10 +26,7 @@ export default class CommandProvider {
     position: vscode.Position = textEditor.selection.start,
   ) => {
     const target = position.with({character: 0});
-    console.log('flagpole-explorer.addFeature', target);
-
     const snippet = new vscode.SnippetString();
-
     const lineAbove = textEditor.document.lineAt(target.line - 1);
     if (lineAbove.text !== 'options:' && !lineAbove.isEmptyOrWhitespace) {
       snippet.appendText('\n');
@@ -53,10 +52,7 @@ export default class CommandProvider {
     position: vscode.Position = textEditor.selection.start,
   ) => {
     const target = position.with({character: 0});
-    console.log('flagpole-explorer.addSegment', target);
-
     const snippet = new vscode.SnippetString();
-
     const lineAbove = textEditor.document.lineAt(target.line);
     if (lineAbove.text.endsWith('segments: []')) {
       snippet
@@ -90,14 +86,8 @@ export default class CommandProvider {
     position: vscode.Position = textEditor.selection.start,
   ) => {
     const target = position.with({character: 0});
-    console.log('flagpole-explorer.addCondition', target);
-
     const snippet = new vscode.SnippetString();
-
-    console.log('adding condition', target);
     const lineAt = textEditor.document.lineAt(target.line);
-    console.log('lineAt', lineAt.text);
-
     if (lineAt.text.endsWith('conditions: []')) {
       snippet
         .appendText('      - conditions:\n')
@@ -124,8 +114,13 @@ export default class CommandProvider {
     }
   };
 
-  public showEvaluateView = (featureName: string, featureDefinition: unknown) => {
-    EvaluateView.createOrShow(this.context.extensionUri, featureName, featureDefinition);
+  public showEvaluateView = (
+    feature: LogicalFeature,
+  ) => {
+    EvaluateView.createOrShow(
+      this.context.extensionUri,
+      logicalFeatureToFeature(feature),
+    );
   };
       
   public evaluateFlag = async (
@@ -138,14 +133,6 @@ export default class CommandProvider {
     const bin = config.get('bin', './bin/flagpole');
     const cwd = config.get('sentry-workspace', '~/code/sentry');
     const flagpoleFile = config.get('flagpole-file');
-
-    console.log('Evaluating:', {
-      cwd,
-      bin,
-      flagpoleFile,
-      flagName,
-      context
-    });
 
     const runner = await CommandRunner.factory(vscode.window.createTerminal({
       name: bin,
@@ -162,14 +149,14 @@ export default class CommandProvider {
         `--`,
         // JANKY!!!
         // Double-stringify to escape quotes in a way that works for the shell too.
-        `${JSON.stringify(JSON.stringify(context))}` 
+        JSON.stringify(JSON.stringify(context)) 
       ]},
       {timeout: 5_000}
     );
-    
+
     const outputTerminal = vscode.window.createTerminal({
       name: 'flagpole',
-      pty: new CommandEchoPty(flagpoleCmd),
+      pty: new StreamPty(flagpoleCmd.output),
       iconPath: vscode.Uri.file('./dist/static/flag.svg'),
       location: vscode.TerminalLocation.Panel,
       isTransient: true,
@@ -180,32 +167,4 @@ export default class CommandProvider {
 
     runner.terminal.dispose();
   };
-}
-
-class CommandEchoPty implements vscode.Pseudoterminal {
-  private writeEmitter = new vscode.EventEmitter<string>();
-  public onDidWrite = this.writeEmitter.event;
-
-  private closeEmitter = new vscode.EventEmitter<void>();
-  public onDidClose = this.closeEmitter.event;
-
-  constructor(
-    private command: Command,
-  ) {}
-
-  public async open() {
-    for await (const line of this.command.output) {
-      this.writeEmitter.fire(line);
-    }
-
-    this.writeEmitter.fire('Press any key to exit');
-  };
-
-  public close() {
-    //
-  };
-
-  handleInput(data: string): void {
-    this.closeEmitter.fire();
-  }
 }

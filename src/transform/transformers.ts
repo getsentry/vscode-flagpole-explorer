@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { RolloutState } from '../types';
+import { Condition, Feature, FeatureName, RolloutState } from '../types';
 
 export class LogicalValue {
   public children: LogicalFeature[] = [];
@@ -47,6 +47,27 @@ export type LogicalCondition = {
   value: string | string[];
 };
 
+export function logicalFeatureToFeature(logicalFeature: LogicalFeature): Feature {
+  return {
+    name: logicalFeature.name as FeatureName,
+    definition: {
+      created_at: logicalFeature.created_at,
+      enabled: logicalFeature.enabled,
+      owner: logicalFeature.owner,
+      segments: logicalFeature.segments.map(segment => ({
+        name: segment.name,
+        rollout: segment.rollout,
+        conditions: segment.conditions.map(condition => ({
+          property: condition.property,
+          operator: condition.operator,
+          value: condition.value,
+        } as Condition)),
+      })),
+    },
+    rollout: logicalFeature.rolloutState,
+  };
+}
+
 export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentSymbol): LogicalFeature {
   const createdAt = symbol.children.find(child => child.name === 'created_at');
   const enabled = symbol.children.find(child => child.name === 'enabled');
@@ -81,6 +102,7 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
 }
 
 export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentSymbol): LogicalSegment {
+  const name = symbol.children.find(child => child.name === 'name');
   const rollout = symbol.children.find(child => child.name === 'rollout');
   const conditionsSymbol = symbol.children.find(child => child.name === 'conditions');
   const conditions = conditionsSymbol?.children.map(symbol => symbolToLogicalCondition(uri, conditionsSymbol, symbol)) ?? [];
@@ -100,7 +122,7 @@ export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentS
   return {
     symbol,
     uri,
-    name: symbol.name,
+    name: name?.detail ?? '',
     rollout: Number(rollout?.detail ?? 100), // default to 100 if omitted
     conditionsSymbol,
     conditions,
@@ -122,6 +144,9 @@ export function symbolToLogicalCondition(
     uri,
     operator: operator?.detail ?? '',
     property: property?.detail ?? '',
-    value: value?.detail ?? value?.children.map(child => child.name) ?? '',
+    value: value?.detail || ['...'],
+    // TODO: we could go and read all the values in the array, but it'll be a bit
+    // slower, and there are often a lot of values that makes things scroll a lot
+    // value: (value?.detail || value?.children.map(child => ...)) ?? '',
   };
 }

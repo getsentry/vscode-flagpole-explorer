@@ -90,18 +90,18 @@ export type PropertyType = 'number' | 'string' | 'boolean';
 
 export const PROPERTIES: Record<PropertyName, PropertyType> = {
   'organization_id': 'string',
-  'organization_is-early-adopter': 'string',
+  'organization_is-early-adopter': 'boolean',
   'organization_name': 'string',
   'organization_slug': 'string',
-  'project_id': 'string',
+  'project_id': 'number',
   'project_name': 'string',
   'project_platform': 'string',
   'project_slug': 'string',
   'sentry_region': 'string',
-  'sentry_singletenant': 'string',
-  'subscription_is-free': 'string',
-  'subscription_is-partner': 'string',
-  'subscription_missing': 'string',
+  'sentry_singletenant': 'boolean',
+  'subscription_is-free': 'boolean',
+  'subscription_is-partner': 'boolean',
+  'subscription_missing': 'boolean',
   'subscription_plan-family': 'string',
   'subscription_plan-tier': 'string',
   'subscription_plan-trial-plan-family': 'string',
@@ -111,8 +111,8 @@ export const PROPERTIES: Record<PropertyName, PropertyType> = {
   'user_domain': 'string',
   'user_email': 'string',
   'user_id': 'string',
-  'user_is-staff': 'string',
-  'user_is-superuser': 'string',
+  'user_is-staff': 'boolean',
+  'user_is-superuser': 'boolean',
 };
 
 export const OPERATORS: OperatorName[] = [

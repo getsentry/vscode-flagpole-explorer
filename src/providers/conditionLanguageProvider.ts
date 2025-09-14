@@ -1,15 +1,11 @@
 import * as vscode from 'vscode';
 import SelectedElementsStore from '../stores/selectedElementsStore';
 
-export default class ConditionLanguageProvider implements vscode.CodeLensProvider {
-  private config: vscode.WorkspaceConfiguration;
-  
+export default class ConditionLanguageProvider implements vscode.CodeLensProvider {  
   constructor(
     private selectedElementsStore: SelectedElementsStore,
     private documentFilter: vscode.DocumentFilter,
-  ) {
-    this.config = vscode.workspace.getConfiguration('flagpole-explorer');
-  }
+  ) {}
 
   public register(): vscode.Disposable[] {
     return [
@@ -27,7 +23,7 @@ export default class ConditionLanguageProvider implements vscode.CodeLensProvide
     document: vscode.TextDocument,
     token: vscode.CancellationToken
   ): Promise<Array<vscode.CodeLens> | undefined> {
-    const config = vscode.workspace.getConfiguration('flagpole-explorer');
+    const config = vscode.workspace.getConfiguration('flagpole-explorer.render');
     if (config.get('renderMutationLenses') === 'never') {
       return [];
     }
