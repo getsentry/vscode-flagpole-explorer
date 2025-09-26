@@ -72,7 +72,7 @@
         "flagpole-explorer.eval.bin": {
           "type": "string",
           "description": "The path of the evaluation binary, relative to the `getsentry/sentry` workspace",
-          "default": "./bin/flagpole"
+          "default": "./src/flagpole/flagpole_eval.py"
         },
         "flagpole-explorer.eval.flagpole-file": {
           "type": "string",
