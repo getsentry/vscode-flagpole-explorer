@@ -2,22 +2,25 @@ import * as vscode from 'vscode';
 
 export class CommandRunner {
   public static factory(terminal: vscode.Terminal, timeout: number) {
-    const theTerminal = terminal;
     return new Promise<CommandRunner>((resolve, reject) => {
-      const rejectionTimeout = setTimeout(() => {
-        reject();
-        unsubscribe.dispose();
-      }, timeout);
-      
-      const unsubscribe = vscode.window.onDidChangeTerminalShellIntegration(
-        ({terminal, shellIntegration}) => {
-          if (terminal === theTerminal) {
-            resolve(new CommandRunner(terminal, shellIntegration));
-            unsubscribe.dispose();
-            clearTimeout(rejectionTimeout);
+      if (terminal.shellIntegration) {
+        resolve(new CommandRunner(terminal, terminal.shellIntegration));
+      } else {
+        const rejectionTimeout = setTimeout(() => {
+          reject();
+          subscription.dispose();
+        }, timeout);
+        
+        const subscription = vscode.window.onDidChangeTerminalShellIntegration(
+          (event) => {
+            if (event.terminal === terminal) {
+              resolve(new CommandRunner(event.terminal, event.shellIntegration));
+              subscription.dispose();
+              clearTimeout(rejectionTimeout);
+            }
           }
-        }
-      );
+        );
+      }
     });
   }
 
@@ -30,9 +33,8 @@ export class CommandRunner {
     cmd: {bin: string, args: string[]},
     options: {timeout: number}
   ): Command {
-    const shellExecution = this.shellIntegration.executeCommand(cmd.bin, cmd.args);
-    const output = shellExecution.read();
-    return new Command(output, shellExecution, options.timeout);
+    const shellExecution = this.shellIntegration.executeCommand(cmd.bin, cmd.args);    
+    return new Command(shellExecution, options.timeout);
   }
 }
 
@@ -40,7 +42,6 @@ class Command {
   public execution: Promise<vscode.TerminalShellExecution>;
 
   constructor(
-    public output: AsyncIterable<string>,
     shellExecution: vscode.TerminalShellExecution, timeout: number,
   ) {
     this.execution = new Promise((resolve, reject) => {
@@ -57,33 +58,5 @@ class Command {
         }
       });
     });
-  }
-}
-
-export class StreamPty implements vscode.Pseudoterminal {
-  private writeEmitter = new vscode.EventEmitter<string>();
-  public onDidWrite = this.writeEmitter.event;
-
-  private closeEmitter = new vscode.EventEmitter<void>();
-  public onDidClose = this.closeEmitter.event;
-
-  constructor(
-    private stream: AsyncIterable<string>,
-  ) {}
-
-  public async open() {
-    for await (const line of this.stream) {
-      this.writeEmitter.fire(line);
-    }
-
-    this.writeEmitter.fire('Press any key to exit');
-  };
-
-  public close() {
-    //
-  };
-
-  handleInput(data: string): void {
-    this.closeEmitter.fire();
   }
 }
