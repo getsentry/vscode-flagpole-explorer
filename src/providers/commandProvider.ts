@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { OPERATORS, PROPERTIES } from '../types';
 import EvaluateView from '../view/evaluateView';
-import { CommandRunner, StreamPty } from './terminalProvider';
+import { CommandRunner } from './terminalProvider';
 import { LogicalFeature, logicalFeatureToFeature } from '../transform/transformers';
 
 export default class CommandProvider {
@@ -10,7 +10,6 @@ export default class CommandProvider {
   ) {}
 
   public register(): vscode.Disposable[] {
-    
     return [
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
       vscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
@@ -122,7 +121,7 @@ export default class CommandProvider {
       logicalFeatureToFeature(feature),
     );
   };
-      
+
   public evaluateFlag = async (
     flagName: string = 'feature.organizations:use-case-insensitive-codeowners',
     context: Object = {
@@ -135,15 +134,22 @@ export default class CommandProvider {
     const flagpoleFile = config.get('flagpole-file');
 
     const runner = await CommandRunner.factory(vscode.window.createTerminal({
-      name: bin,
+      name: flagName,
       iconPath: vscode.Uri.file('./dist/static/flag.svg'),
       location: vscode.TerminalLocation.Panel,
+      hideFromUser: false,
       isTransient: true,
     }), 5_000);
-    await runner.run({bin: 'cd', args: [cwd]}, {timeout: 3_000}).execution;
-    
+    runner.terminal.show(false);
+
+    // Prefix the command with `;\n\n` to end any partial commands that are being
+    // executed, and just run ours. If `direnv` is already running that's ok,
+    // we're going to call `direnv exec` again anyway in the correct folder.
     const flagpoleCmd = runner.run(
-      {bin, args: [
+      {bin: ';\n\ndirenv', args: [
+        'exec',
+        cwd,
+        `${cwd}/${bin}`,
         `--flagpole-file=${flagpoleFile}`,
         `--flag-name=${flagName}`,
         `--`,
@@ -151,20 +157,8 @@ export default class CommandProvider {
         // Double-stringify to escape quotes in a way that works for the shell too.
         JSON.stringify(JSON.stringify(context)) 
       ]},
-      {timeout: 5_000}
+      {timeout: 1_000}
     );
-
-    const outputTerminal = vscode.window.createTerminal({
-      name: 'flagpole',
-      pty: new StreamPty(flagpoleCmd.output),
-      iconPath: vscode.Uri.file('./dist/static/flag.svg'),
-      location: vscode.TerminalLocation.Panel,
-      isTransient: true,
-    });
-    outputTerminal.show(true);
-
     await flagpoleCmd.execution;
-
-    runner.terminal.dispose();
   };
 }
