@@ -21,7 +21,60 @@
             "type": "npm",
             "script": "watch:esbuild",
             "group": "build",
-            "problemMatcher": "$esbuild-watch",
+            // ESBuild ProblemMatcher configuration, copied from https://github.com/connor4312/esbuild-problem-matchers/blob/v0.0.3/package.json
+            // The easiest way would be to use this extension: https://marketplace.visualstudio.com/items?itemName=connor4312.esbuild-problem-matchers
+            // and set `"problemMatcher": "$esbuild-watch",`
+            // but that extension isn't on the OpenVSX Marketplace, so Cursor
+            // can't find/install it automatically.
+            "problemMatcher": [
+                {
+                    "severity": "error",
+                    "applyTo": "closedDocuments",
+                    "source": "esbuild",
+                    "fileLocation": "relative",
+                    "pattern": [
+                        {
+                            "regexp": "^[✘▲] \\[([A-Z]+)\\] (.+)",
+                            "severity": 1,
+                            "message": 2
+                        },
+                        {
+                            "regexp": "^(?:\\t| {4})(?!\\s)([^:]+)(?::([0-9]+))?(?::([0-9]+))?:$",
+                            "file": 1,
+                            "line": 2,
+                            "column": 3
+                        }
+                    ]
+                },
+                {
+                    "severity": "error",
+                    "applyTo": "closedDocuments",
+                    "source": "esbuild",
+                    "fileLocation": "relative",
+                    "pattern": [
+                        {
+                            "regexp": "^[✘▲] \\[([A-Z]+)\\] (.+)",
+                            "severity": 1,
+                            "message": 2
+                        },
+                        {
+                            "regexp": "^(?:\\t| {4})(?!\\s)([^:]+)(?::([0-9]+))?(?::([0-9]+))?:$",
+                            "file": 1,
+                            "line": 2,
+                            "column": 3
+                        }
+                    ],
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": {
+                            "regexp": "\\[watch\\] build started"
+                        },
+                        "endsPattern": {
+                            "regexp": "\\[watch\\] build finished"
+                        }
+                    }
+                }
+            ],
             "isBackground": true,
             "label": "npm: watch:esbuild",
             "presentation": {

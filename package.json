@@ -167,15 +167,15 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run package",
-    "compile": "npm run check-types && node esbuild.js",
+    "vscode:prepublish": "yarn run package",
+    "compile": "yarn run check-types && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "npm run check-types && node esbuild.js --production",
+    "package": "yarn run check-types && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "pretest": "npm run compile",
+    "pretest": "yarn run compile",
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
