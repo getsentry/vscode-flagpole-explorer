@@ -175,7 +175,7 @@
     "package": "yarn run check-types && node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
-    "pretest": "yarn runcompile",
+    "pretest": "yarn run compile",
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
