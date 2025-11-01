@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 import OutlineStore, { Outline } from './outlineStore';
 import { LogicalCondition, LogicalFeature, LogicalSegment } from '../transform/transformers';
+import type { ExtensionContextWithSentry } from '../types';
 
 export default class SelectedElementsStore {
   public static selections: WeakMap<vscode.Uri, readonly vscode.Selection[]> = new WeakMap();
 
   constructor(
+    private context: ExtensionContextWithSentry,
     public outlineStore: OutlineStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}

@@ -1,9 +1,11 @@
 import * as vscode from 'vscode';
 import getRolloutEmoji from '../utils/getRolloutEmoji';
 import SelectedElementsStore from '../stores/selectedElementsStore';
+import type { ExtensionContextWithSentry } from '../types';
 
 export default class SegmentLanguageProvider implements vscode.CodeLensProvider, vscode.InlayHintsProvider {
   constructor(
+    private context: ExtensionContextWithSentry,
     private selectedElementsStore: SelectedElementsStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}

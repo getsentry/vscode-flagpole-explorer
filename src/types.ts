@@ -1,3 +1,10 @@
+import type * as vscode from 'vscode';
+import type { Scope } from '@sentry/node-core';
+
+export type ExtensionContextWithSentry = vscode.ExtensionContext & {
+  scope: Scope;
+};
+
 export type Feature = {
   name: FeatureName;
   definition: {

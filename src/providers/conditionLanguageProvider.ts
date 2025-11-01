@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import SelectedElementsStore from '../stores/selectedElementsStore';
+import type { ExtensionContextWithSentry } from '../types';
 
 export default class ConditionLanguageProvider implements vscode.CodeLensProvider {  
   constructor(
+    private context: ExtensionContextWithSentry,
     private selectedElementsStore: SelectedElementsStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}

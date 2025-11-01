@@ -10,12 +10,13 @@ import {
 } from './flagsByCategoryTreeProvider';
 import FlagsWithExtraSegmentsTreeViewProvider from './flagsWithExtraSegmentsTreeViewProvider';
 import EvaluateView from '../view/evaluateView';
+import type { ExtensionContextWithSentry } from '../types';
 
 export default class WindowEventHandlerProvider {
   views: vscode.TreeView<CategoryTreeViewElement>[] = [];
 
   constructor(
-    private context: vscode.ExtensionContext,
+    private context: ExtensionContextWithSentry,
     private outlineStore: OutlineStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}
