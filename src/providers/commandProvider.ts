@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
 import { OPERATORS, PROPERTIES } from '../types';
+import type{ ExtensionContextWithSentry } from '../types';
 import EvaluateView from '../view/evaluateView';
 import { CommandRunner } from './terminalProvider';
 import { LogicalFeature, logicalFeatureToFeature } from '../transform/transformers';
 
 export default class CommandProvider {
   constructor(
-    private context: vscode.ExtensionContext,
+    private context: ExtensionContextWithSentry,
   ) {}
 
   public register(): vscode.Disposable[] {

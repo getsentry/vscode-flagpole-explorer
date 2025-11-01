@@ -1,8 +1,10 @@
 import * as vscode from 'vscode';
 import OutlineStore from '../stores/outlineStore';
+import type { ExtensionContextWithSentry } from '../types';
 
 export default class WorkspaceEventHandlerProvider {
   public constructor(
+    private context: ExtensionContextWithSentry,
     private outlineStore: OutlineStore,
     private documentFilter: vscode.DocumentFilter,
   ) {}

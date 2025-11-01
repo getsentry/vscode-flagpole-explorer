@@ -179,7 +179,11 @@
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "@sentry/core": "^10.22.0",
+    "@sentry/electron": "^7.2.0",
+    "@sentry/node-core": "^10.22.0"
+  },
   "devDependencies": {
     "@esbuild-plugins/node-globals-polyfill": "^0.2.3",
     "@types/mocha": "^10.0.10",
