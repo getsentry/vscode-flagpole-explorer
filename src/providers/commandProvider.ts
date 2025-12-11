@@ -35,7 +35,9 @@ export default class CommandProvider {
       .appendText('  feature.organizations:').appendPlaceholder('my-new-flag').appendText(':\n')
       .appendText('    created_at: ').appendVariable('CURRENT_YEAR', '').appendText('-').appendVariable('CURRENT_MONTH', '').appendText('-').appendVariable('CURRENT_DATE', '').appendText('\n')
       .appendText('    enabled: ').appendChoice(['true', 'false']).appendText('\n')
-      .appendText('    owner: ').appendPlaceholder('unknown').appendText('\n')
+      .appendText('    owner:\n')
+      .appendText('      email: ').appendPlaceholder('yourname@sentry.io').appendText('\n')
+      .appendText('      team: ').appendPlaceholder('unknown').appendText('\n')
       .appendText('    segments: []\n');
 
     textEditor.insertSnippet(snippet, target, {
