@@ -87,13 +87,20 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
 
   const hasExtraSegments = (rolloutState === '100%') ?(segments.at(-1)?.conditions.length ?? 0) > 0 : false;
 
+  let ownerValue = owner?.detail ?? '';
+  if (!ownerValue && owner?.children?.length) {
+    const email = owner.children.find(c => c.name === 'email');
+    const team = owner.children.find(c => c.name === 'team');
+    ownerValue = email?.detail || team?.detail || '';
+  }
+
   return {
     symbol,
     uri,
     name: symbol.name,
     created_at: createdAt?.detail ?? '',
     enabled: enabled?.detail !== 'false', // default to true if omitted
-    owner: owner?.detail ?? '',
+    owner: ownerValue,
     segmentsSymbol,
     segments,
     rolloutState: rolloutState ?? '0%', // defaults to 0% of there are no segments
