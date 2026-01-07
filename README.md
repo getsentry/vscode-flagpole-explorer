@@ -37,6 +37,15 @@ If you're dealing with Flagpole inside Sentry, then the extension is already par
 ![](./example-vscode-evaluate.png)
 
 
+## 📊 Diagnostics
+
+This extension sends diagnostic data (error reports and performance metrics) to Sentry to help us identify and fix issues. No sensitive data or file contents are transmitted.
+
+**To opt out**: Open Settings and uncheck `flagpole-explorer.allowSendingDiagnostics`
+
+See [SENTRY_SETUP.md](./SENTRY_SETUP.md) for more details about what data is collected and how to disable it.
+
+
 ## 🐛 Bugs
 
 Please file an issue [here](https://github.com/getsentry/vscode-flagpole-explorer/issues) for feature requests, bugs, missing documentation, or unexpected behavior.

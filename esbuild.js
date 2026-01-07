@@ -1,7 +1,6 @@
 const esbuild = require('esbuild');
 const glob = require('glob');
 const path = require('path');
-const polyfill = require('@esbuild-plugins/node-globals-polyfill');
 const copyStaticFiles = require('esbuild-copy-static-files')
 
 
@@ -16,15 +15,10 @@ async function main() {
     minify: production,
     sourcemap: !production,
     sourcesContent: false,
-    platform: 'browser',
+    platform: 'node',
     outdir: 'dist/',
     external: ['vscode'],
     logLevel: 'warning',
-    // Node.js global to browser globalThis
-    define: {
-      global: 'globalThis'
-    },
-
     plugins: [
       copyStaticFiles({
 				src: './static',
@@ -33,10 +27,6 @@ async function main() {
 				force: true,
 				recursive: true,
 			}),
-      polyfill.NodeGlobalsPolyfillPlugin({
-        process: true,
-        buffer: true
-      }),
       testBundlePlugin,
       esbuildProblemMatcherPlugin /* add to the end of plugins array */
     ]
@@ -92,7 +82,9 @@ const esbuildProblemMatcherPlugin = {
     build.onEnd(result => {
       result.errors.forEach(({ text, location }) => {
         console.error(`✘ [ERROR] ${text}`);
-        if (location == null) return;
+        if (location === null) {
+          return;
+        };
         console.error(`    ${location.file}:${location.line}:${location.column}:`);
       });
       console.log('[watch] build finished');
