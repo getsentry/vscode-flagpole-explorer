@@ -4,3 +4,7 @@ node_modules
 .vscode-test/
 .vscode-test-web/
 *.vsix
+
+# nektos/act local CI testing
+.secrets
+.act-artifacts/

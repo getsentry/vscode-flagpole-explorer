@@ -1,0 +1,5 @@
+--container-architecture linux/amd64
+--platform ubuntu-latest=catthehacker/ubuntu:act-latest
+--action-offline-mode
+--artifact-server-path ./.act-artifacts
+
