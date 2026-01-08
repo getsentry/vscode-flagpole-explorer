@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
+      node-version: 24.12.0 # See Node.js release schedule: https://nodejs.org/en/about/releases/
     outputs:
       new_tag: ${{ steps.find_version.outputs.new_tag }}
       changelog: ${{ steps.find_version.outputs.changelog }}
@@ -23,7 +23,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       
-      - run: pnpm install --frozen-lockfile
+      - name: Setup Node.js
+        uses: actions/setup-node@1a4442cacd436585916779262731d5b162bc6ec7 # v4.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Fetch next version
         uses: mathieudutour/github-tag-action@v6.1
@@ -63,9 +85,17 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     env:
-      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
+      node-version: 24.12.0 # See Node.js release schedule: https://nodejs.org/en/about/releases/
 
     steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@1a4442cacd436585916779262731d5b162bc6ec7 # v4.2.0
+        with:
+          node-version: ${{ env.node-version }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
 
       - name: Sentry Release
