@@ -7,9 +7,9 @@ import {
   getDefaultIntegrations,
   startSpan,
   startInactiveSpan,
+  startSession,
   captureSession,
 } from '@sentry/node';
-import {makeSession} from '@sentry/core';
 import * as vscode from 'vscode';
 
 let isInitialized = false;
@@ -105,8 +105,8 @@ export function initializeSentry(context: vscode.ExtensionContext): void {
     'extension.version': version,
   });
 
+  const session = startSession({
   // Start a session for release health tracking
-  const session = makeSession({
     release: `flagpole-explorer@${version}`,
     environment,
   });
