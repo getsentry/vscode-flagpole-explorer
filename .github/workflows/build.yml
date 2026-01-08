@@ -21,9 +21,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        uses: actions/checkout@v3
+
+      - name: Setup Node v${{ env.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.node-version }}
+          cache: 'yarn'
       
-      - run: pnpm install --frozen-lockfile
+      - run: yarn install --frozen-lockfile
 
       - name: Fetch next version
         uses: mathieudutour/github-tag-action@v6.1
@@ -33,14 +39,14 @@ jobs:
           release_branches: main
           dry_run: true
 
-      - run: pnpm run lint
+      - run: yarn run lint
 
-      - run: pnpm run check-types
+      - run: yarn run check-types
 
-      # - name: pnpm run test
+      # - name: yarn run test
       #   uses: GabrielBB/xvfb-action@v1.0
       #   with:
-      #     run: pnpm run test
+      #     run: yarn run test
 
       - name: Set package.json version to ${{ steps.find_version.outputs.new_tag }}
         run: >
@@ -55,7 +61,7 @@ jobs:
           pat: FAKE_FOR_PACKAGE
           dryRun: true
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
+      - uses: actions/upload-artifact@master
         with:
           path: ${{ steps.package.outputs.vsixPath }}
 
@@ -66,7 +72,7 @@ jobs:
       node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
 
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
+      - uses: actions/download-artifact@master
 
       - name: Sentry Release
         uses: getsentry/action-release@v3
