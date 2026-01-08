@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as sentryVscode from '../utils/sentryVscode';
 import { OPERATORS, PROPERTIES } from '../types';
 import EvaluateView from '../view/evaluateView';
 import { CommandRunner } from './terminalProvider';
@@ -11,11 +12,11 @@ export default class CommandProvider {
 
   public register(): vscode.Disposable[] {
     return [
-      vscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
-      vscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
-      vscode.commands.registerTextEditorCommand('flagpole-explorer.addCondition', this.addCondition),
-      vscode.commands.registerCommand('flagpole-explorer.show-evaluate-view', this.showEvaluateView),
-      vscode.commands.registerCommand('flagpole-explorer.evaluate-flag', this.evaluateFlag),
+      sentryVscode.commands.registerTextEditorCommand('flagpole-explorer.addFeature', this.addFeature),
+      sentryVscode.commands.registerTextEditorCommand('flagpole-explorer.addSegment', this.addSegment),
+      sentryVscode.commands.registerTextEditorCommand('flagpole-explorer.addCondition', this.addCondition),
+      sentryVscode.commands.registerCommand('flagpole-explorer.show-evaluate-view', this.showEvaluateView),
+      sentryVscode.commands.registerCommand('flagpole-explorer.evaluate-flag', this.evaluateFlag),
     ];
   }
 

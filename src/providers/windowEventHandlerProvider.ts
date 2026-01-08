@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as sentryVscode from '../utils/sentryVscode';
 import OutlineStore from '../stores/outlineStore';
 import FlagsByNameTreeViewProvider from './flagsByNameTreeViewProvider';
 import {
@@ -63,8 +64,8 @@ export default class WindowEventHandlerProvider {
     }
 
     return [
-      // vscode.window.onDidChangeActiveTextEditor(this.handleDidChangeActiveTextEditor),
-      vscode.window.onDidChangeTextEditorSelection(this.handleDidChangeTextEditorSelection),
+      // sentryVscode.window.onDidChangeActiveTextEditor(this.handleDidChangeActiveTextEditor),
+      sentryVscode.window.onDidChangeTextEditorSelection(this.handleDidChangeTextEditorSelection),
       ...serializers,
       ...this.views,
     ];

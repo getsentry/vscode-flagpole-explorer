@@ -37,6 +37,15 @@ If you're dealing with Flagpole inside Sentry, then the extension is already par
 ![](./example-vscode-evaluate.png)
 
 
+## 📊 Diagnostics
+
+This extension sends diagnostic data (error reports and performance metrics) to Sentry to help us identify and fix issues. No sensitive data or file contents are transmitted.
+
+**To opt out**: Open Settings and uncheck `flagpole-explorer.allowSendingDiagnostics`
+
+See [SENTRY_SETUP.md](./SENTRY_SETUP.md) for more details about what data is collected and how to disable it.
+
+
 ## 🐛 Bugs
 
 Please file an issue [here](https://github.com/getsentry/vscode-flagpole-explorer/issues) for feature requests, bugs, missing documentation, or unexpected behavior.
@@ -60,6 +69,39 @@ The extension will rebuild in the background as you edit files, but the debug wi
 To reload the debug window with the latest build of the extension run 'Developer: Reload Window' (`CTRL + OPT + CMD + L`) from the command palette.
 
 You can [debug webviews](https://code.visualstudio.com/api/extension-guides/webview#inspecting-and-debugging-webviews) as well (such as the Evalutate Feature view). From within the window that contains the running extenion, run the command 'Developer: Open Webview Developer Tools' from the command palette to open a chrome devtools instance where you can find the iframe for your webview.
+
+
+## 🧪 Testing CI Locally
+
+You can test the GitHub Actions workflow locally using [nektos/act](https://github.com/nektos/act) which depends on Docker.
+
+**Install act**:
+```bash
+brew install act
+```
+
+**Available commands**:
+```bash
+# List all jobs in the workflow
+pnpm run ci:list
+
+# Run the build job (most common for development)
+pnpm run ci:build
+
+# Run build with verbose output for debugging
+pnpm run ci:build:verbose
+
+# See what would run without executing (dry-run)
+pnpm run ci:all:dryrun
+
+# Run all jobs (requires .secrets file)
+pnpm run ci:all
+```
+
+**Notes**:
+- The build job runs on all branches and doesn't require secrets
+- The publish job only runs on `main` or `releases/*` branches and requires secrets
+- Copy `.secrets.example` to `.secrets` and fill in values if you need to test the publish job
 
 
 ## Publishing
