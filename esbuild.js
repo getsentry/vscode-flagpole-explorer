@@ -1,7 +1,7 @@
 const esbuild = require('esbuild');
 const glob = require('glob');
 const path = require('path');
-const copyStaticFiles = require('esbuild-copy-static-files')
+const copyStaticFiles = require('esbuild-copy-static-files');
 
 
 const production = process.argv.includes('--production');

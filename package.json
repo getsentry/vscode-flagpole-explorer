@@ -189,7 +189,8 @@
     "ci:all:dryrun": "act --job build --dryrun"
   },
   "dependencies": {
-    "@sentry/node": "10.32.1"
+    "@sentry/node": "10.32.1",
+    "glob": "^13.0.0"
   },
   "devDependencies": {    
     "@esbuild-plugins/node-globals-polyfill": "0.2.3",
