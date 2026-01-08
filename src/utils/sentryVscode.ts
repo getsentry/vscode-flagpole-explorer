@@ -22,6 +22,42 @@ import {
  */
 
 /**
+ * Helper to create a wrapped event listener with Sentry tracking.
+ * Reduces boilerplate for event handler wrappers.
+ */
+function wrapEventListener<T>(
+  eventName: string,
+  listener: (e: T) => any,
+  thisArgs: any,
+  getContext?: (e: T) => Record<string, any>,
+  onBeforeCall?: (e: T) => void
+): (e: T) => any {
+  return (e: T) => {
+    return startActiveSpan(
+      {
+        name: `event.${eventName}`,
+        op: 'event',
+      },
+      () => {
+        try {
+          onBeforeCall?.(e);
+          return listener.call(thisArgs, e);
+        } catch (error) {
+          const context = getContext?.(e) || {};
+          captureException(error as Error, {
+            context: 'event-handler',
+            eventName,
+            ...context,
+          });
+          
+          console.error(`Error in ${eventName}:`, error);
+        }
+      }
+    );
+  };
+}
+
+/**
  * Wrapped commands namespace with automatic Sentry tracking
  */
 export const commands = {
@@ -145,29 +181,12 @@ export const window = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextEditor | undefined) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeActiveTextEditor',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            // Don't show UI errors for events (too noisy)
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeActiveTextEditor',
-              documentUri: e?.document?.uri?.toString(),
-            });
-            
-            console.error('Error in onDidChangeActiveTextEditor:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeActiveTextEditor',
+      listener,
+      thisArgs,
+      (e) => ({ documentUri: e?.document?.uri?.toString() })
+    );
     return vscode.window.onDidChangeActiveTextEditor(wrappedListener, thisArgs, disposables);
   },
 
@@ -179,28 +198,12 @@ export const window = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextEditorSelectionChangeEvent) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeTextEditorSelection',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeTextEditorSelection',
-              documentUri: e.textEditor.document.uri.toString(),
-            });
-            
-            console.error('Error in onDidChangeTextEditorSelection:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeTextEditorSelection',
+      listener,
+      thisArgs,
+      (e) => ({ documentUri: e.textEditor.document.uri.toString() })
+    );
     return vscode.window.onDidChangeTextEditorSelection(wrappedListener, thisArgs, disposables);
   },
 
@@ -212,28 +215,12 @@ export const window = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: readonly vscode.TextEditor[]) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeVisibleTextEditors',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeVisibleTextEditors',
-              editorsCount: e.length,
-            });
-            
-            console.error('Error in onDidChangeVisibleTextEditors:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeVisibleTextEditors',
+      listener,
+      thisArgs,
+      (e) => ({ editorsCount: e.length })
+    );
     return vscode.window.onDidChangeVisibleTextEditors(wrappedListener, thisArgs, disposables);
   },
 
@@ -245,28 +232,12 @@ export const window = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.WindowState) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeWindowState',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeWindowState',
-              focused: e.focused,
-            });
-            
-            console.error('Error in onDidChangeWindowState:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeWindowState',
+      listener,
+      thisArgs,
+      (e) => ({ focused: e.focused })
+    );
     return vscode.window.onDidChangeWindowState(wrappedListener, thisArgs, disposables);
   },
 };
@@ -283,29 +254,15 @@ export const workspace = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextDocumentChangeEvent) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeTextDocument',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeTextDocument',
-              documentUri: e.document.uri.toString(),
-              changesCount: e.contentChanges.length,
-            });
-            
-            console.error('Error in onDidChangeTextDocument:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeTextDocument',
+      listener,
+      thisArgs,
+      (e) => ({
+        documentUri: e.document.uri.toString(),
+        changesCount: e.contentChanges.length,
+      })
+    );
     return vscode.workspace.onDidChangeTextDocument(wrappedListener, thisArgs, disposables);
   },
 
@@ -317,28 +274,12 @@ export const workspace = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextDocument) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidSaveTextDocument',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidSaveTextDocument',
-              documentUri: e.uri.toString(),
-            });
-            
-            console.error('Error in onDidSaveTextDocument:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidSaveTextDocument',
+      listener,
+      thisArgs,
+      (e) => ({ documentUri: e.uri.toString() })
+    );
     return vscode.workspace.onDidSaveTextDocument(wrappedListener, thisArgs, disposables);
   },
 
@@ -350,28 +291,12 @@ export const workspace = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextDocument) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidOpenTextDocument',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidOpenTextDocument',
-              documentUri: e.uri.toString(),
-            });
-            
-            console.error('Error in onDidOpenTextDocument:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidOpenTextDocument',
+      listener,
+      thisArgs,
+      (e) => ({ documentUri: e.uri.toString() })
+    );
     return vscode.workspace.onDidOpenTextDocument(wrappedListener, thisArgs, disposables);
   },
 
@@ -383,28 +308,12 @@ export const workspace = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.TextDocument) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidCloseTextDocument',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidCloseTextDocument',
-              documentUri: e.uri.toString(),
-            });
-            
-            console.error('Error in onDidCloseTextDocument:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidCloseTextDocument',
+      listener,
+      thisArgs,
+      (e) => ({ documentUri: e.uri.toString() })
+    );
     return vscode.workspace.onDidCloseTextDocument(wrappedListener, thisArgs, disposables);
   },
 
@@ -416,28 +325,63 @@ export const workspace = {
     thisArgs?: any,
     disposables?: vscode.Disposable[]
   ): vscode.Disposable {
-    const wrappedListener = (e: vscode.ConfigurationChangeEvent) => {
-      return startActiveSpan(
-        {
-          name: 'event.onDidChangeConfiguration',
-          op: 'event',
-        },
-        () => {
-          try {
-            return listener.call(thisArgs, e);
-          } catch (error) {
-            captureException(error as Error, {
-              context: 'event-handler',
-              eventName: 'onDidChangeConfiguration',
-            });
-            
-            console.error('Error in onDidChangeConfiguration:', error);
-          }
-        }
-      );
-    };
-
+    const wrappedListener = wrapEventListener(
+      'onDidChangeConfiguration',
+      listener,
+      thisArgs
+    );
     return vscode.workspace.onDidChangeConfiguration(wrappedListener, thisArgs, disposables);
+  },
+
+  /**
+   * Wrap workspace.onDidRenameFiles with Sentry tracking.
+   */
+  onDidRenameFiles(
+    listener: (e: vscode.FileRenameEvent) => any,
+    thisArgs?: any,
+    disposables?: vscode.Disposable[]
+  ): vscode.Disposable {
+    const wrappedListener = wrapEventListener(
+      'onDidRenameFiles',
+      listener,
+      thisArgs,
+      (e) => ({ filesCount: e.files.length }),
+      (e) => {
+        addBreadcrumb('Files renamed', 'workspace', 'info', {
+          filesCount: e.files.length,
+          files: e.files.map(f => ({ old: f.oldUri.path, new: f.newUri.path })),
+        });
+      }
+    );
+    return vscode.workspace.onDidRenameFiles(wrappedListener, thisArgs, disposables);
+  },
+
+  /**
+   * Wrap workspace.onDidChangeWorkspaceFolders with Sentry tracking.
+   */
+  onDidChangeWorkspaceFolders(
+    listener: (e: vscode.WorkspaceFoldersChangeEvent) => any,
+    thisArgs?: any,
+    disposables?: vscode.Disposable[]
+  ): vscode.Disposable {
+    const wrappedListener = wrapEventListener(
+      'onDidChangeWorkspaceFolders',
+      listener,
+      thisArgs,
+      (e) => ({
+        addedCount: e.added.length,
+        removedCount: e.removed.length,
+      }),
+      (e) => {
+        addBreadcrumb('Workspace folders changed', 'workspace', 'info', {
+          addedCount: e.added.length,
+          removedCount: e.removed.length,
+          added: e.added.map(f => f.uri.path),
+          removed: e.removed.map(f => f.uri.path),
+        });
+      }
+    );
+    return vscode.workspace.onDidChangeWorkspaceFolders(wrappedListener, thisArgs, disposables);
   },
 };
 

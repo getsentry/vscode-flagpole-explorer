@@ -1,27 +1,31 @@
 import * as vscode from 'vscode';
+import { addBreadcrumb } from '../utils/sentry';
+import { createTimeoutPromise } from '../utils/createTimeoutPromise';
 
 export class CommandRunner {
   public static factory(terminal: vscode.Terminal, timeout: number) {
-    return new Promise<CommandRunner>((resolve, reject) => {
-      if (terminal.shellIntegration) {
-        resolve(new CommandRunner(terminal, terminal.shellIntegration));
-      } else {
-        const rejectionTimeout = setTimeout(() => {
-          reject();
-          subscription.dispose();
-        }, timeout);
-        
-        const subscription = vscode.window.onDidChangeTerminalShellIntegration(
-          (event) => {
+    // Fast path: shell integration already available
+    if (terminal.shellIntegration) {
+      addBreadcrumb('Terminal shell integration ready', 'terminal', 'info');
+      return Promise.resolve(new CommandRunner(terminal, terminal.shellIntegration));
+    }
+
+    // Wait for shell integration with timeout
+    addBreadcrumb('Waiting for terminal shell integration', 'terminal', 'info', { timeout });
+    return createTimeoutPromise<CommandRunner>(
+      timeout,
+      'Terminal shell integration',
+      (resolve) => {
+        return vscode.window.onDidChangeTerminalShellIntegration(
+          (event: vscode.TerminalShellIntegrationChangeEvent) => {
             if (event.terminal === terminal) {
+              addBreadcrumb('Terminal shell integration established', 'terminal', 'info');
               resolve(new CommandRunner(event.terminal, event.shellIntegration));
-              subscription.dispose();
-              clearTimeout(rejectionTimeout);
             }
           }
         );
       }
-    });
+    );
   }
 
   private constructor(
@@ -42,21 +46,26 @@ class Command {
   public execution: Promise<vscode.TerminalShellExecution>;
 
   constructor(
-    shellExecution: vscode.TerminalShellExecution, timeout: number,
+    shellExecution: vscode.TerminalShellExecution,
+    timeout: number,
   ) {
-    this.execution = new Promise((resolve, reject) => {
-      const rejectionTimeout = setTimeout(() => {
-        reject();
-        subscription.dispose();
-      }, timeout);
-
-      const subscription = vscode.window.onDidEndTerminalShellExecution(event => {
-        if (event.execution === shellExecution) {
-          resolve(shellExecution);
-          subscription.dispose();
-          clearTimeout(rejectionTimeout);
-        }
-      });
-    });
+    addBreadcrumb('Terminal command started', 'terminal', 'info', { timeout });
+    
+    this.execution = createTimeoutPromise<vscode.TerminalShellExecution>(
+      timeout,
+      'Terminal command execution',
+      (resolve) => {
+        return vscode.window.onDidEndTerminalShellExecution(
+          (event: vscode.TerminalShellExecutionEndEvent) => {
+            if (event.execution === shellExecution) {
+              addBreadcrumb('Terminal command completed', 'terminal', 'info', {
+                exitCode: event.exitCode,
+              });
+              resolve(shellExecution);
+            }
+          }
+        );
+      }
+    );
   }
 }

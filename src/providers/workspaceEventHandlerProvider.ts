@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as sentryVscode from '../utils/sentryVscode';
+import { addBreadcrumb } from '../utils/sentry';
 import OutlineStore from '../stores/outlineStore';
 
 export default class WorkspaceEventHandlerProvider {
@@ -10,16 +12,16 @@ export default class WorkspaceEventHandlerProvider {
   public register(): vscode.Disposable[] {
     return [
       // We don't care about whether flagpole.yaml is open or not:
-      // vscode.workspace.onDidOpenTextDocument(),
-      // vscode.workspace.onDidSaveTextDocument(),
-      // vscode.workspace.onDidCloseTextDocument(),
+      // sentryVscode.workspace.onDidOpenTextDocument(),
+      // sentryVscode.workspace.onDidSaveTextDocument(),
+      // sentryVscode.workspace.onDidCloseTextDocument(),
 
       // We do care if flagpole.yaml is changed:
-      vscode.workspace.onDidChangeTextDocument(this.handleDidChangeTextDocument),
+      sentryVscode.workspace.onDidChangeTextDocument(this.handleDidChangeTextDocument, this),
       
       // We do care if the workspace itself is changed:
-      vscode.workspace.onDidRenameFiles(this.handleDidRenameFiles),
-      vscode.workspace.onDidChangeWorkspaceFolders(this.handleDidChangeWorkspaceFolders),
+      sentryVscode.workspace.onDidRenameFiles(this.handleDidRenameFiles, this),
+      sentryVscode.workspace.onDidChangeWorkspaceFolders(this.handleDidChangeWorkspaceFolders, this),
     ];
   }
 
@@ -30,6 +32,11 @@ export default class WorkspaceEventHandlerProvider {
    */
   handleDidChangeTextDocument = async (event: vscode.TextDocumentChangeEvent) => {
     if (vscode.languages.match(this.documentFilter, event.document)) {
+      addBreadcrumb('Refreshing outline for changed document', 'workspace', 'info', {
+        documentUri: event.document.uri.toString(),
+        changeCount: event.contentChanges.length,
+        isDirty: event.document.isDirty,
+      });
       await this.outlineStore.fire({uri: event.document.uri});
     }
   };
@@ -45,11 +52,27 @@ export default class WorkspaceEventHandlerProvider {
    * *Note 2:* When renaming a folder with children only one event is fired.
    */
   handleDidRenameFiles = (event: vscode.FileRenameEvent) => {
+    const flagpoleFiles = event.files.filter(
+      file => file.oldUri.path.endsWith('/flagpole.yaml') || file.newUri.path.endsWith('/flagpole.yaml')
+    );
+    
+    if (flagpoleFiles.length > 0) {
+      addBreadcrumb('Handling flagpole.yaml file rename', 'workspace', 'info', {
+        renamedFlagpoleFiles: flagpoleFiles.length,
+      });
+    }
+
     for (const file of event.files) {
       if (file.oldUri.path.endsWith('/flagpole.yaml')) {
+        addBreadcrumb('Forgetting outline for old path', 'workspace', 'debug', {
+          oldPath: file.oldUri.path,
+        });
         this.outlineStore.forgetOutline(file.oldUri);
       }
       if (file.newUri.path.endsWith('/flagpole.yaml')) {
+        addBreadcrumb('Refreshing outline for new path', 'workspace', 'debug', {
+          newPath: file.newUri.path,
+        });
         this.outlineStore.fire({uri: file.newUri});
       }
     }
@@ -64,9 +87,20 @@ export default class WorkspaceEventHandlerProvider {
    * to point to the first workspace folder.
    */
   handleDidChangeWorkspaceFolders = (event: vscode.WorkspaceFoldersChangeEvent) => {
-    event.added.forEach(() => {
+    if (event.added.length > 0) {
+      addBreadcrumb('Searching for flagpole files in added workspace folders', 'workspace', 'info', {
+        addedFolders: event.added.map(f => f.uri.path),
+        pattern: this.documentFilter.pattern,
+      });
+    }
+
+    event.added.forEach((folder) => {
       if (this.documentFilter.pattern) {
         vscode.workspace.findFiles(this.documentFilter.pattern, '**/node_modules/**').then(found => {
+          addBreadcrumb('Found flagpole files in new workspace folder', 'workspace', 'info', {
+            folderPath: folder.uri.path,
+            filesFound: found.length,
+          });
           found.forEach(uri => this.outlineStore.fire({uri}));
         });
       }
