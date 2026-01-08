@@ -14,7 +14,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      node-version: 24.12.0 # See Node.js release schedule: https://nodejs.org/en/about/releases/
+      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
     outputs:
       new_tag: ${{ steps.find_version.outputs.new_tag }}
       changelog: ${{ steps.find_version.outputs.changelog }}
@@ -72,7 +72,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/releases/')
     runs-on: ubuntu-latest
     env:
-      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
+      node-version:  # See Node.js release schedule: https://nodejs.org/en/about/releases/
 
     steps:
       - name: Download VSIX artifact
