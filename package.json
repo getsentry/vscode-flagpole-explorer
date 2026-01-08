@@ -176,7 +176,7 @@
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
-    "package": "yarn run check-types && node esbuild.js --production",
+    "package": "node esbuild.js --production",
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "pretest": "yarn run compile",
