@@ -3,9 +3,8 @@ name: Extension CI
 on:
   push:
     branches:
-      - main
-    tags: 
-      - 'releases/**'
+      - '**'
+  pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -61,18 +60,23 @@ jobs:
           pat: FAKE_FOR_PACKAGE
           dryRun: true
 
-      - uses: actions/upload-artifact@master
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
         with:
           path: ${{ steps.package.outputs.vsixPath }}
 
   publish:
     needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/releases/')
     runs-on: ubuntu-latest
     env:
       node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
 
     steps:
-      - uses: actions/download-artifact@master
+      - name: Download VSIX artifact
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # 5.0.0
+        with:
+          path: ./
 
       - name: Sentry Release
         uses: getsentry/action-release@v3
@@ -84,7 +88,7 @@ jobs:
           environment: production
           release: ${{ needs.build.outputs.new_tag }}
           ignore_missing: true
-          set_commits	: skip
+          set_commits: skip
 
       - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
         uses: ncipollo/release-action@v1
