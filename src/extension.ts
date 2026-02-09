@@ -196,3 +196,5 @@ export function deactivate() {
     }
   );
 }
+
+export default { activate, deactivate };

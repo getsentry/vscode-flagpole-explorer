@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main
-    tags: 
-      - 'releases/**'
+    tags:
+      - "releases/**"
   pull_request:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -28,8 +28,8 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.node-version }}
-          cache: 'yarn'
-      
+          cache: "yarn"
+
       - run: yarn install --frozen-lockfile
 
       - name: Fetch next version
@@ -61,6 +61,10 @@ jobs:
         with:
           pat: FAKE_FOR_PACKAGE
           dryRun: true
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
@@ -72,7 +76,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/releases/')
     runs-on: ubuntu-latest
     env:
-      node-version:  # See Node.js release schedule: https://nodejs.org/en/about/releases/
+      node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
 
     steps:
       - name: Download VSIX artifact
