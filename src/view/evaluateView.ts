@@ -6,7 +6,7 @@ export default class EvaluateView {
 
   public static currentPanel: EvaluateView | undefined;
 
-  public static createOrShow(extensionUri: vscode.Uri, feature: Feature) {
+  public static createOrShow(extensionUri: vscode.Uri, feature: null | Feature) {
     const column = vscode.ViewColumn.Beside;
 
     // If we already have a panel, show it.
@@ -71,8 +71,10 @@ export default class EvaluateView {
     this._panel.webview.html = this._getHtmlForWebview(webview);
   }
 
-  public selectFlag(feature: Feature) {
-    this._panel.webview.postMessage({ command: 'select-flag', feature });
+  public selectFlag(feature: null | Feature) {
+    if (feature) {
+      this._panel.webview.postMessage({ command: 'select-flag', feature });
+    }
   }
 
   public dispose() {
