@@ -29,9 +29,15 @@ async function main() {
 				recursive: true,
 			}),
       sentryEsbuildPlugin({
+        disable: !process.env.CI,
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
         authToken: process.env.SENTRY_AUTH_TOKEN,
+        environment: production ? 'production' : 'development',
+        release: {
+          finalize: false,
+          name: process.env.RELEASE,
+        },
         sourcemaps: {
           filesToDeleteAfterUpload: [
             "./dist/**/*.map",

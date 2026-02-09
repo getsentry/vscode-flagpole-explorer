@@ -16,7 +16,8 @@ jobs:
     env:
       node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
     outputs:
-      new_tag: ${{ steps.find_version.outputs.new_tag }}
+      new_tag: ${{ steps.find_version.outputs.new_tag }} # Tag includes `v` prefix. ie: v1.2.3
+      new_version: ${{ steps.find_version.outputs.new_version }} # Version has no prefix. ie: 1.2.3
       changelog: ${{ steps.find_version.outputs.changelog }}
       vsixPath: ${{ steps.package.outputs.vsixPath }}
 
@@ -49,7 +50,7 @@ jobs:
       #   with:
       #     run: yarn run test
 
-      - name: Set package.json version to ${{ steps.find_version.outputs.new_tag }}
+      - name: Set package.json version to ${{ steps.find_version.outputs.new_version }}
         run: >
           cp package.json tmp.json;
           jq -r '.version |= "${{ steps.find_version.outputs.new_version }}"' tmp.json > package.json;
@@ -65,6 +66,7 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          RELEASE: ${{ steps.find_version.outputs.new_version }}
 
       - name: Upload VSIX artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
@@ -84,7 +86,7 @@ jobs:
         with:
           path: ./
 
-      - name: Sentry Release
+      - name: Sentry Release ${{ needs.build.outputs.new_version }}
         uses: getsentry/action-release@v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
@@ -92,9 +94,9 @@ jobs:
           SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
         with:
           environment: production
-          release: ${{ needs.build.outputs.new_tag }}
+          release: ${{ needs.build.outputs.new_version }}
           ignore_missing: true
-          set_commits: skip
+          finalize: true
 
       - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
         uses: ncipollo/release-action@v1
@@ -104,13 +106,13 @@ jobs:
           body: ${{ needs.build.outputs.changelog }}
           artifacts: ${{ needs.build.outputs.vsixPath }}
 
-      - name: Publish to Open VSX Registry
+      - name: Publish ${{ needs.build.outputs.new_version }} to Open VSX Registry
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.OVSX_REGISTRY_TOKEN }}
           extensionFile: ${{ needs.build.outputs.vsixPath }}
 
-      - name: Publish to VSCode Marketplace
+      - name: Publish ${{ needs.build.outputs.new_version }} to VSCode Marketplace
         uses: HaaLeo/publish-vscode-extension@v2
         with:
           pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
