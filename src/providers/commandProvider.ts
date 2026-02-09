@@ -117,11 +117,11 @@ export default class CommandProvider {
   };
 
   public showEvaluateView = (
-    feature: LogicalFeature,
+    feature?: LogicalFeature,
   ) => {
     EvaluateView.createOrShow(
       this.context.extensionUri,
-      logicalFeatureToFeature(feature),
+      feature ? logicalFeatureToFeature(feature) : null,
     );
   };
 
