@@ -2,6 +2,7 @@ const esbuild = require('esbuild');
 const glob = require('glob');
 const path = require('path');
 const copyStaticFiles = require('esbuild-copy-static-files');
+const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
 
 
 const production = process.argv.includes('--production');
@@ -9,11 +10,11 @@ const watch = process.argv.includes('--watch');
 
 async function main() {
   const ctx = await esbuild.context({
-    entryPoints: ['src/extension.ts', 'src/test/extension.test.ts'],
+    entryPoints: ['src/extension.ts'],
     bundle: true,
     format: 'cjs',
     minify: production,
-    sourcemap: !production,
+    sourcemap: production ? 'external' : false,
     sourcesContent: false,
     platform: 'node',
     outdir: 'dist/',
@@ -27,6 +28,16 @@ async function main() {
 				force: true,
 				recursive: true,
 			}),
+      sentryEsbuildPlugin({
+        org: process.env.SENTRY_ORG,
+        project: process.env.SENTRY_PROJECT,
+        authToken: process.env.SENTRY_AUTH_TOKEN,
+        sourcemaps: {
+          filesToDeleteAfterUpload: [
+            "./dist/**/*.map",
+          ],
+        },
+      }),
       testBundlePlugin,
       esbuildProblemMatcherPlugin /* add to the end of plugins array */
     ]
