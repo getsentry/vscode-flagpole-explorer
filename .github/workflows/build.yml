@@ -16,7 +16,7 @@ jobs:
     env:
       node-version: 22.x # See Node.js release schedule: https://nodejs.org/en/about/releases/
     outputs:
-      new_tag: ${{ steps.find_version.outputs.new_tag }} # Tag include `v` prefix. ie: v1.2.3
+      new_tag: ${{ steps.find_version.outputs.new_tag }} # Tag includes `v` prefix. ie: v1.2.3
       new_version: ${{ steps.find_version.outputs.new_version }} # Version has no prefix. ie: 1.2.3
       changelog: ${{ steps.find_version.outputs.changelog }}
       vsixPath: ${{ steps.package.outputs.vsixPath }}
@@ -50,7 +50,7 @@ jobs:
       #   with:
       #     run: yarn run test
 
-      - name: "Set package.json version to ${{ steps.find_version.outputs.new_version }} (tag: ${{ steps.find_version.outputs.new_tag }})"
+      - name: Set package.json version to ${{ steps.find_version.outputs.new_version }}
         run: >
           cp package.json tmp.json;
           jq -r '.version |= "${{ steps.find_version.outputs.new_version }}"' tmp.json > package.json;
@@ -96,7 +96,7 @@ jobs:
           environment: production
           release: ${{ needs.build.outputs.new_version }}
           ignore_missing: true
-          set_commits: skip
+          finalize: true
 
       - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
         uses: ncipollo/release-action@v1

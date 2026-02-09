@@ -33,7 +33,9 @@ async function main() {
         org: process.env.SENTRY_ORG,
         project: process.env.SENTRY_PROJECT,
         authToken: process.env.SENTRY_AUTH_TOKEN,
+        environment: production ? 'production' : 'development',
         release: {
+          finalize: false,
           name: process.env.RELEASE,
         },
         sourcemaps: {
