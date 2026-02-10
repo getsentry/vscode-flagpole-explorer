@@ -97,6 +97,7 @@ jobs:
           release: ${{ needs.build.outputs.new_version }}
           ignore_missing: true
           finalize: true
+          set_commits: skip
 
       - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
         uses: ncipollo/release-action@v1
