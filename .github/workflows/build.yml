@@ -23,10 +23,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
       - name: Setup Node v${{ env.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
         with:
           node-version: ${{ env.node-version }}
           cache: "yarn"
@@ -34,7 +34,7 @@ jobs:
       - run: yarn install --frozen-lockfile
 
       - name: Fetch next version
-        uses: mathieudutour/github-tag-action@v6.1
+        uses: mathieudutour/github-tag-action@aacd18f07c808c12edb372dc9f9e7160f06c72e8 # v6.1
         id: find_version
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
@@ -46,7 +46,7 @@ jobs:
       - run: yarn run check-types
 
       # - name: yarn run test
-      #   uses: GabrielBB/xvfb-action@v1.0
+      #   uses: GabrielBB/xvfb-action@fe2609f8182a9ed5aee7d53ff3ed04098a904df2 # v1.0
       #   with:
       #     run: yarn run test
 
@@ -58,7 +58,7 @@ jobs:
 
       - name: Package as `flagpole-explorer-${{ steps.find_version.outputs.new_version }}.vsix`
         id: package
-        uses: HaaLeo/publish-vscode-extension@v2
+        uses: HaaLeo/publish-vscode-extension@4004fc217b5ac892b15a1c3cbe6458de97242dde # v2
         with:
           pat: FAKE_FOR_PACKAGE
           dryRun: true
@@ -87,7 +87,7 @@ jobs:
           path: ./
 
       - name: Sentry Release ${{ needs.build.outputs.new_version }}
-        uses: getsentry/action-release@v3
+        uses: getsentry/action-release@dab6548b3c03c4717878099e43782cf5be654289 # v3
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -100,7 +100,7 @@ jobs:
           set_commits: skip
 
       - name: Create GitHub release tag ${{ needs.build.outputs.new_tag }}
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1
         with:
           tag: ${{ needs.build.outputs.new_tag }}
           name: Release ${{ needs.build.outputs.new_tag }}
@@ -108,13 +108,13 @@ jobs:
           artifacts: ${{ needs.build.outputs.vsixPath }}
 
       - name: Publish ${{ needs.build.outputs.new_version }} to Open VSX Registry
-        uses: HaaLeo/publish-vscode-extension@v2
+        uses: HaaLeo/publish-vscode-extension@4004fc217b5ac892b15a1c3cbe6458de97242dde # v2
         with:
           pat: ${{ secrets.OVSX_REGISTRY_TOKEN }}
           extensionFile: ${{ needs.build.outputs.vsixPath }}
 
       - name: Publish ${{ needs.build.outputs.new_version }} to VSCode Marketplace
-        uses: HaaLeo/publish-vscode-extension@v2
+        uses: HaaLeo/publish-vscode-extension@4004fc217b5ac892b15a1c3cbe6458de97242dde # v2
         with:
           pat: ${{ secrets.VS_MARKETPLACE_TOKEN }}
           extensionFile: ${{ needs.build.outputs.vsixPath }}
