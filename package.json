@@ -23,11 +23,11 @@
     "feature flag"
   ],
   "pricing": "Free",
-
   "activationEvents": [
     "workspaceContains:**/flagpole.yaml"
   ],
   "main": "./dist/extension.js",
+  "browser": "./dist/extension.js",
   "contributes": {
     "configurationDefaults": {
       "files.associations": {
@@ -204,6 +204,7 @@
     "@typescript-eslint/parser": "8.31.1",
     "@vscode/test-cli": "0.0.11",
     "@vscode/test-electron": "2.5.2",
+    "@vscode/test-web": "^0.0.80",
     "assert": "2.1.0",
     "esbuild": "0.25.3",
     "esbuild-copy-static-files": "0.1.0",
