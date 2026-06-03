@@ -118,9 +118,11 @@ export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentS
     if (rollout?.detail === '0') {
       return '0%';
     }
-    // If `rollout` is not specified it's defaulted to 100
-    // Or if there are no conditions, it's also out to 100
-    if ([undefined, '100'].includes(rollout?.detail) && conditions?.length === 0) {
+    // Rollout not specified defaults to 100; explicit 100 with no conditions = fully rolled out
+    // Distinguish between "key missing" (rollout === undefined) and "key present but non-100 detail"
+    // to avoid a partial rollout with no conditions being misread as 100%.
+    const isFullRollout = rollout === undefined || rollout.detail === '100';
+    if (isFullRollout && conditions.length === 0) {
       return '100%';
     }
     return 'partial' as const;
