@@ -11,6 +11,7 @@
   "publisher": "getsentry",
   "license": "SEE LICENSE IN LICENSE",
   "private": true,
+  "packageManager": "pnpm@11.1.2",
   "engines": {
     "vscode": "^1.99.0"
   },
@@ -172,8 +173,8 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "yarn run package",
-    "compile": "yarn run check-types && node esbuild.js",
+    "vscode:prepublish": "pnpm run package",
+    "compile": "pnpm run check-types && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
@@ -181,7 +182,7 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "knip": "knip",
-    "pretest": "yarn run compile",
+    "pretest": "pnpm run compile",
     "test": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. --extensionTestsPath=dist/web/test/suite/extensionTests.js",
     "run-in-browser": "vscode-test-web --browserType=chromium --extensionDevelopmentPath=. .",
     "ci:list": "act --list",
@@ -209,8 +210,5 @@
     "mocha": "11.7.1",
     "npm-run-all": "4.1.5",
     "typescript": "5.8.3"
-  },
-  "resolutions": {
-    "glob": "10.5.0"
   }
 }
