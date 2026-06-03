@@ -9,8 +9,7 @@ const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
 
 async function main() {
-  const ctx = await esbuild.context({
-    entryPoints: ['src/extension.ts'],
+  const sharedOptions = {
     bundle: true,
     format: 'cjs',
     minify: production,
@@ -18,8 +17,13 @@ async function main() {
     sourcesContent: false,
     platform: 'node',
     outdir: 'dist/',
-    external: ['vscode'],
     logLevel: 'warning',
+  };
+
+  const extensionCtx = await esbuild.context({
+    ...sharedOptions,
+    entryPoints: ['src/extension.ts'],
+    external: ['vscode'],
     plugins: [
       copyStaticFiles({
 				src: './static',
@@ -44,15 +48,26 @@ async function main() {
           ],
         },
       }),
-      testBundlePlugin,
-      esbuildProblemMatcherPlugin /* add to the end of plugins array */
+      esbuildProblemMatcherPlugin,
     ]
   });
+
+  const testCtx = await esbuild.context({
+    ...sharedOptions,
+    entryPoints: ['src/web/test/suite/extensionTests.ts'],
+    outbase: 'src',
+    external: ['vscode'],
+    plugins: [
+      testBundlePlugin,
+      esbuildProblemMatcherPlugin,
+    ]
+  });
+
   if (watch) {
-    await ctx.watch();
+    await Promise.all([extensionCtx.watch(), testCtx.watch()]);
   } else {
-    await ctx.rebuild();
-    await ctx.dispose();
+    await Promise.all([extensionCtx.rebuild(), testCtx.rebuild()]);
+    await Promise.all([extensionCtx.dispose(), testCtx.dispose()]);
   }
 }
 
@@ -71,14 +86,14 @@ const testBundlePlugin = {
       }
     });
     build.onLoad({ filter: /[\/\\]extensionTests\.ts$/ }, async args => {
-      const testsRoot = path.join(__dirname, 'src/test');
-      const files = await glob.glob('*.test.{ts,tsx}', { cwd: testsRoot, posix: true });
+      const srcRoot = path.join(__dirname, 'src');
+      const files = await glob.glob('**/*.test.{ts,tsx}', { cwd: srcRoot, posix: true, ignore: ['node_modules/**'] });
       return {
         contents:
           `export { run } from './mochaTestRunner.ts';` +
-          files.map(f => `import('./${f}');`).join(''),
-        watchDirs: files.map(f => path.dirname(path.resolve(testsRoot, f))),
-        watchFiles: files.map(f => path.resolve(testsRoot, f))
+          files.map(f => `import '../../../${f}';`).join(''),
+        watchDirs: files.map(f => path.dirname(path.resolve(srcRoot, f))),
+        watchFiles: files.map(f => path.resolve(srcRoot, f))
       };
     });
   }

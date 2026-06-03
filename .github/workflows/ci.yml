@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    env:
+      node-version: 22.x
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Node v${{ env.node-version }}
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: ${{ env.node-version }}
+          cache: "yarn"
+
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn run lint
+
+      - run: yarn run check-types
+
+  test:
+    runs-on: ubuntu-latest
+    env:
+      node-version: 22.x
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup Node v${{ env.node-version }}
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: ${{ env.node-version }}
+          cache: "yarn"
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Run tests
+        uses: GabrielBB/xvfb-action@b706e4e27b14669b486812790492dc50ca16b465 # v1.7
+        with:
+          run: yarn run test
