@@ -9,25 +9,23 @@ export function createTimeoutPromise<T>(
   timeout: number,
   operation: string,
   onSetup: (resolve: (value: T) => void, reject: (error: Error) => void) => vscode.Disposable): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const rejectionTimeout = setTimeout(() => {
+  let rejectionTimeout: ReturnType<typeof setTimeout>;
+  let subscription: vscode.Disposable;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    rejectionTimeout = setTimeout(() => {
       const error = new Error(`${operation} timeout after ${timeout}ms`);
       captureException(error, { context: 'terminal', operation });
       reject(error);
-      subscription.dispose();
     }, timeout);
+  });
 
-    const subscription = onSetup(
-      (value) => {
-        resolve(value);
-        subscription.dispose();
-        clearTimeout(rejectionTimeout);
-      },
-      (error) => {
-        reject(error);
-        subscription.dispose();
-        clearTimeout(rejectionTimeout);
-      }
-    );
+  const operationPromise = new Promise<T>((resolve, reject) => {
+    subscription = onSetup(resolve, reject);
+  });
+
+  return Promise.race([operationPromise, timeoutPromise]).finally(() => {
+    clearTimeout(rejectionTimeout);
+    subscription.dispose();
   });
 }
