@@ -1,0 +1,11 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/extension.ts",
+    "src/web/test/suite/extensionTests.ts",
+    "src/**/*.test.ts"
+  ],
+  "project": ["src/**/*.ts", "esbuild.js"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreBinaries": ["act"]
+}

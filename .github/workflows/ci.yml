@@ -29,6 +29,8 @@ jobs:
 
       - run: yarn run check-types
 
+      - run: yarn run knip
+
   test:
     runs-on: ubuntu-latest
     env:

@@ -388,6 +388,9 @@ export const workspace = {
 /**
  * Helper function to wrap any custom async operation with Sentry tracking.
  * Use this for operations that don't fit the command/event patterns above.
+ *
+ * Part of the instrumentation API documented in SENTRY_VSCODE_USAGE.md.
+ * @public
  */
 export function wrapOperation<T>(
   operationName: string,
@@ -417,6 +420,9 @@ export function wrapOperation<T>(
 
 /**
  * Helper function to wrap any custom sync operation with Sentry tracking.
+ *
+ * Part of the instrumentation API documented in SENTRY_VSCODE_USAGE.md.
+ * @public
  */
 export function wrapOperationSync<T>(
   operationName: string,
