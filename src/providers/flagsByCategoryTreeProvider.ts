@@ -36,6 +36,7 @@ abstract class FlagsByCategoryTreeProvider implements vscode.TreeDataProvider<Ca
 
   public async getChildren(element?: CategoryTreeViewElement): Promise<CategoryTreeViewElement[]> {
     if (!element) {
+      await this.outlineStore.whenReady();
       return this.outlineStore.knownUris();
     } else if (element instanceof vscode.Uri) {
       const outline = await this.outlineStore.getOutline(element);

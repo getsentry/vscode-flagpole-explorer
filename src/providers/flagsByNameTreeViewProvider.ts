@@ -26,6 +26,7 @@ export default class FlagsByNameTreeViewProvider implements vscode.TreeDataProvi
 
   public async getChildren(element?: TreeViewElement): Promise<TreeViewElement[]> {
     if (!element) {
+      await this.outlineStore.whenReady();
       return this.outlineStore.knownUris();
     } else if (element instanceof vscode.Uri) {
       const outline = await this.outlineStore.getOutline(element);

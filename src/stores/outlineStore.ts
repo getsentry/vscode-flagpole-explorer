@@ -31,6 +31,29 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
   private _uris: Map<string, vscode.Uri> = new Map();
   private _outlineCache: WeakMap<vscode.Uri, Outline> = new WeakMap();
 
+  private _initialLoad: Promise<void>;
+  private _resolveReady!: () => void;
+
+  constructor() {
+    super();
+    this._initialLoad = new Promise(resolve => {
+      this._resolveReady = resolve;
+    });
+  }
+
+  /**
+   * Resolves once the initial file scan has completed. Root `getChildren()`
+   * calls await this so VS Code renders its native loading spinner instead of
+   * a blank view while the YAML symbols are still being parsed.
+   */
+  public whenReady(): Promise<void> {
+    return this._initialLoad;
+  }
+
+  public markReady(): void {
+    this._resolveReady();
+  }
+
   protected static documentSymbolsToMap(uri: vscode.Uri, symbols: vscode.DocumentSymbol[]): SymbolMap {
     const optionSymbol = symbols.find(symbol => symbol.name === 'options');
     if (!optionSymbol) {
