@@ -17,6 +17,18 @@ function makeSymbol(name: string, detail: string, children: vscode.DocumentSymbo
   return sym;
 }
 
+// Mirrors the YAML language server's `getDetail`: an array symbol's `detail`
+// is `'[]'` when empty and `undefined` when it has items. The item symbols are
+// also dropped once `yaml.maxItemsComputed` is exhausted, so `detail` — not
+// `children` — is the reliable signal for "has conditions".
+function makeConditions(children: vscode.DocumentSymbol[] = []): vscode.DocumentSymbol {
+  const detail = children.length ? undefined : '[]';
+  const range = new vscode.Range(0, 0, 0, 0);
+  const sym = new vscode.DocumentSymbol('conditions', detail as unknown as string, vscode.SymbolKind.Array, range, range);
+  sym.children = children;
+  return sym;
+}
+
 const uri = vscode.Uri.parse('file:///test/flagpole.yaml');
 
 suite('transformers', () => {
@@ -40,7 +52,7 @@ suite('transformers', () => {
 
   suite('symbolToLogicalCondition', () => {
     test('extracts operator, property, and value detail', () => {
-      const parent = makeSymbol('conditions', '');
+      const parent = makeConditions([]);
       const conditionSymbol = makeSymbol('0', '', [
         makeSymbol('operator', 'in'),
         makeSymbol('property', 'organization_slug'),
@@ -56,7 +68,7 @@ suite('transformers', () => {
     });
 
     test('defaults to empty strings when children are missing', () => {
-      const parent = makeSymbol('conditions', '');
+      const parent = makeConditions([]);
       const conditionSymbol = makeSymbol('0', '', []);
       const result = symbolToLogicalCondition(uri, parent, conditionSymbol);
       assert.strictEqual(result.operator, '');
@@ -65,7 +77,7 @@ suite('transformers', () => {
     });
 
     test('falls back to ["..."] when value detail is empty string', () => {
-      const parent = makeSymbol('conditions', '');
+      const parent = makeConditions([]);
       const conditionSymbol = makeSymbol('0', '', [
         makeSymbol('operator', 'in'),
         makeSymbol('property', 'organization_slug'),
@@ -81,7 +93,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'is_sentry'),
         makeSymbol('rollout', '100'),
-        makeSymbol('conditions', '', [
+        makeConditions([
           makeSymbol('0', '', [
             makeSymbol('operator', 'in'),
             makeSymbol('property', 'organization_slug'),
@@ -100,7 +112,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'GA'),
         makeSymbol('rollout', '100'),
-        makeSymbol('conditions', '', []),
+        makeConditions([]),
       ]);
       const result = symbolToLogicalSegment(uri, symbol);
       assert.strictEqual(result.rolloutState, '100%');
@@ -110,7 +122,7 @@ suite('transformers', () => {
     test('segment with no rollout field and no conditions is 100%', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'GA'),
-        makeSymbol('conditions', '', []),
+        makeConditions([]),
       ]);
       const result = symbolToLogicalSegment(uri, symbol);
       assert.strictEqual(result.rolloutState, '100%');
@@ -120,7 +132,7 @@ suite('transformers', () => {
     test('segment with no rollout field and conditions is partial', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'EA'),
-        makeSymbol('conditions', '', [
+        makeConditions([
           makeSymbol('0', '', [
             makeSymbol('operator', 'equals'),
             makeSymbol('property', 'organization_is-early-adopter'),
@@ -137,7 +149,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'dev'),
         makeSymbol('rollout', '0'),
-        makeSymbol('conditions', '', [
+        makeConditions([
           makeSymbol('0', '', [
             makeSymbol('operator', 'in'),
             makeSymbol('property', 'organization_slug'),
@@ -154,7 +166,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'gradual'),
         makeSymbol('rollout', '50'),
-        makeSymbol('conditions', '', [
+        makeConditions([
           makeSymbol('0', '', [
             makeSymbol('operator', 'in'),
             makeSymbol('property', 'subscription_plan-tier'),
@@ -171,7 +183,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'gradual'),
         makeSymbol('rollout', '50'),
-        makeSymbol('conditions', '', []),
+        makeConditions([]),
       ]);
       const result = symbolToLogicalSegment(uri, symbol);
       assert.strictEqual(result.rolloutState, 'partial');
@@ -189,10 +201,38 @@ suite('transformers', () => {
       assert.strictEqual(result.rolloutState, '100%');
     });
 
+    test('rollout 100 with truncated conditions (no children, detail undefined) is partial', () => {
+      // Reproduces a large flagpole.yaml where the YAML language server hit
+      // `yaml.maxItemsComputed` and dropped the condition items. The
+      // `conditions` key is present with `detail: undefined` (non-empty array),
+      // but `children` is empty.
+      const conditionsSymbol = makeSymbol('conditions', undefined as unknown as string, []);
+      const symbol = makeSymbol('0', '', [
+        makeSymbol('name', 'LA'),
+        makeSymbol('rollout', '100'),
+        conditionsSymbol,
+      ]);
+      const result = symbolToLogicalSegment(uri, symbol);
+      assert.strictEqual(result.conditions.length, 0);
+      assert.strictEqual(result.hasConditions, true);
+      assert.strictEqual(result.rolloutState, 'partial');
+    });
+
+    test('empty conditions (detail "[]") with rollout 100 is 100%', () => {
+      const symbol = makeSymbol('0', '', [
+        makeSymbol('name', 'GA'),
+        makeSymbol('rollout', '100'),
+        makeConditions([]),
+      ]);
+      const result = symbolToLogicalSegment(uri, symbol);
+      assert.strictEqual(result.hasConditions, false);
+      assert.strictEqual(result.rolloutState, '100%');
+    });
+
     test('segment with no name defaults to empty string', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('rollout', '100'),
-        makeSymbol('conditions', '', []),
+        makeConditions([]),
       ]);
       const result = symbolToLogicalSegment(uri, symbol);
       assert.strictEqual(result.name, '');
@@ -202,7 +242,7 @@ suite('transformers', () => {
       const symbol = makeSymbol('0', '', [
         makeSymbol('name', 'test'),
         makeSymbol('rollout', '100'),
-        makeSymbol('conditions', '', []),
+        makeConditions([]),
       ]);
       const result = symbolToLogicalSegment(uri, symbol);
       assert.strictEqual(result.uri, uri);
@@ -220,7 +260,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'IA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -240,6 +280,29 @@ suite('transformers', () => {
       assert.strictEqual(result.hasExtraSegments, false);
     });
 
+    test('feature with rollout-100 segment whose conditions were truncated is partial', () => {
+      // A large file where the YAML language server dropped the condition
+      // items: the segment reports rollout 100 with an empty (truncated)
+      // conditions list, which previously mis-read as 100%.
+      const symbol = makeSymbol('feature.organizations:issue-performance-n-plus-one-db-queries-experimental-visible', '', [
+        makeSymbol('created_at', '2025-05-09'),
+        makeSymbol('enabled', 'true'),
+        makeSymbol('owner', '', [makeSymbol('team', 'issue_detection')]),
+        makeSymbol('segments', '', [
+          makeSymbol('0', '', [
+            makeSymbol('name', 'LA'),
+            makeSymbol('rollout', '100'),
+            makeSymbol('conditions', undefined as unknown as string, []),
+          ]),
+        ]),
+      ]);
+      const result = symbolToLogicalFeature(uri, symbol);
+      assert.strictEqual(result.rolloutState, 'partial');
+      assert.strictEqual(result.segments.length, 1);
+      assert.strictEqual(result.segments[0].hasConditions, true);
+      assert.strictEqual(result.hasExtraSegments, false);
+    });
+
     test('feature with 100% segment becomes 100%', () => {
       const symbol = makeSymbol('feature.organizations:full-rollout', '', [
         makeSymbol('created_at', '2025-01-01'),
@@ -249,7 +312,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]);
@@ -267,12 +330,12 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
           makeSymbol('1', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -296,7 +359,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '0'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]);
@@ -335,7 +398,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -408,7 +471,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -419,7 +482,7 @@ suite('transformers', () => {
           makeSymbol('1', '', [
             makeSymbol('name', 'EA'),
             makeSymbol('rollout', '0'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]);
@@ -436,7 +499,7 @@ suite('transformers', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -447,7 +510,7 @@ suite('transformers', () => {
           makeSymbol('1', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]);
@@ -465,7 +528,7 @@ suite('transformers', () => {
         ownerSymbol,
         makeSymbol('segments', '', [
           makeSymbol('0', '', [
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '50'),
           ]),
@@ -523,6 +586,7 @@ suite('transformers', () => {
         rollout: 100,
         conditionsSymbol: undefined,
         conditions: [],
+        hasConditions: false,
         rolloutState: '100%',
         ...overrides,
       };

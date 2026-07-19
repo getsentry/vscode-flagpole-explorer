@@ -35,6 +35,7 @@ export type LogicalSegment = {
   rollout: number;
   conditionsSymbol: vscode.DocumentSymbol | undefined,
   conditions: LogicalCondition[];
+  hasConditions: boolean;
   rolloutState: RolloutState;
 };
 
@@ -85,7 +86,7 @@ export function symbolToLogicalFeature(uri: vscode.Uri, symbol: vscode.DocumentS
     return prev;
   }, '0%' as RolloutState);
 
-  const hasExtraSegments = (rolloutState === '100%') ?(segments.at(-1)?.conditions.length ?? 0) > 0 : false;
+  const hasExtraSegments = (rolloutState === '100%') ? (segments.at(-1)?.hasConditions ?? false) : false;
 
   let ownerValue = owner?.detail ?? '';
   if (!ownerValue && owner?.children?.length) {
@@ -114,13 +115,21 @@ export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentS
   const conditionsSymbol = symbol.children.find(child => child.name === 'conditions');
   const conditions = conditionsSymbol?.children.map(symbol => symbolToLogicalCondition(uri, conditionsSymbol, symbol)) ?? [];
 
+  // The YAML language server truncates the symbol tree once
+  // `yaml.maxItemsComputed` is reached, dropping the `conditions` array items
+  // on large files even though the `conditions` key itself is present. Its
+  // `detail` still reflects the real array: `'[]'` for a genuinely empty
+  // array, `undefined` when it has items. Trust `detail`, not `children`,
+  // which may have been truncated to empty.
+  const hasConditions = conditionsSymbol !== undefined && conditionsSymbol.detail !== '[]';
+
   const rolloutState = (function() {
     if (rollout?.detail === '0') {
       return '0%';
     }
     // If `rollout` is not specified it's defaulted to 100
     // Or if there are no conditions, it's also out to 100
-    if ([undefined, '100'].includes(rollout?.detail) && conditions?.length === 0) {
+    if ([undefined, '100'].includes(rollout?.detail) && !hasConditions) {
       return '100%';
     }
     return 'partial' as const;
@@ -133,6 +142,7 @@ export function symbolToLogicalSegment(uri: vscode.Uri, symbol: vscode.DocumentS
     rollout: Number(rollout?.detail ?? 100), // default to 100 if omitted
     conditionsSymbol,
     conditions,
+    hasConditions,
     rolloutState,
   };
 }
