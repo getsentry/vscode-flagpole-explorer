@@ -99,28 +99,32 @@ export function activate(context: vscode.ExtensionContext) {
           vscode.workspace
             .findFiles(flagpoleFileDocumentFilter.pattern, '**/node_modules/**')
             .then(
-              withSentrySync('findFiles.success', (found: vscode.Uri[]) => {
+              withSentrySync('findFiles.success', async (found: vscode.Uri[]) => {
                 addBreadcrumb('Found flagpole files', 'initialization', 'info', {
                   count: found.length,
                 });
-                found.forEach(uri => {
+                await Promise.all(found.map(async uri => {
                   try {
-                    outlineStore.fire({uri});
+                    await outlineStore.fire({uri});
                   } catch (error) {
                     captureException(error as Error, {
                       context: 'outlineStore.fire',
                       uri: uri.toString(),
                     });
                   }
-                });
+                }));
+                outlineStore.markReady();
               }),
               (error: Error) => {
                 captureException(error, {
                   context: 'findFiles',
                   pattern: flagpoleFileDocumentFilter.pattern,
                 });
+                outlineStore.markReady();
               }
             );
+        } else {
+          outlineStore.markReady();
         }
 
         addBreadcrumb('Extension activation completed', 'lifecycle');
