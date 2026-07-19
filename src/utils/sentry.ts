@@ -10,6 +10,8 @@ import {
   startSession,
   captureSession,
 } from '@sentry/node';
+import * as os from 'os';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 let isInitialized = false;
@@ -93,8 +95,9 @@ export function initializeSentry(context: vscode.ExtensionContext): void {
   sentryClient.init();
 
   // Set user context
-  sentryScope.setUser({
+  setUser({
     id: vscode.env.machineId,
+    username: getHomeDirName(),
   });
 
   // Set tags
@@ -230,6 +233,30 @@ export function captureException(error: Error, context?: Record<string, any>): v
   }
   
   sentryScope.captureException(error);
+}
+
+/**
+ * Set user context for Sentry events.
+ */
+export function setUser(user: { id?: string; email?: string; username?: string }): void {
+  if (!sentryScope) {
+    return;
+  }
+
+  sentryScope.setUser(user);
+}
+
+/**
+ * Derive a username from the name of the user's home directory.
+ * Returns undefined in environments without one (e.g. vscode.dev / web).
+ */
+function getHomeDirName(): string | undefined {
+  try {
+    const homedir = os.homedir();
+    return homedir ? path.basename(homedir) : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /**
