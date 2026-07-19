@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { captureMessage } from '../utils/sentry';
 import {
   LogicalCondition,
   LogicalFeature,
@@ -130,6 +131,9 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
 
 function getSymbols(uri: vscode.Uri, timeout: number = 0): Promise<undefined | vscode.DocumentSymbol[]> {
   if (timeout > 5_000) {
+    captureMessage('Timed out waiting for document symbols', 'warning', {
+      uri: uri.toString(),
+    });
     return Promise.resolve(undefined);
   }
   return new Promise(resolve => {

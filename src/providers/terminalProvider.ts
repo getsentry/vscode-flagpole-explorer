@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { addBreadcrumb } from '../utils/sentry';
+import { addBreadcrumb, startManualSpan } from '../utils/sentry';
 import { createTimeoutPromise } from '../utils/createTimeoutPromise';
 
 export class CommandRunner {
@@ -50,7 +50,8 @@ class Command {
     timeout: number,
   ) {
     addBreadcrumb('Terminal command started', 'terminal', 'info', { timeout });
-    
+    const endSpan = startManualSpan('terminal.command', 'terminal');
+
     this.execution = createTimeoutPromise<vscode.TerminalShellExecution>(
       timeout,
       'Terminal command execution',
@@ -66,6 +67,6 @@ class Command {
           }
         );
       }
-    );
+    ).finally(endSpan);
   }
 }

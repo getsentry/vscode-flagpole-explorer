@@ -21,6 +21,10 @@ export function strictEqual<T>(actual: unknown, expected: T, message?: string): 
   }
 }
 
+/**
+ * Kept for parity with the node:assert API so tests can swap between them.
+ * @public
+ */
 export function notStrictEqual(actual: unknown, expected: unknown, message?: string): void {
   if (actual === expected) {
     throw new AssertionError({actual, expected, operator: '!==', message});

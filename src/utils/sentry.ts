@@ -118,6 +118,9 @@ export function initializeSentry(context: vscode.ExtensionContext): void {
 
 /**
  * Wrap an async function with Sentry error handling and span tracking.
+ *
+ * Part of the instrumentation API documented in SENTRY_SETUP.md.
+ * @public
  */
 export function withSentry<T extends (...args: any[]) => Promise<any>>(
   operationName: string,
@@ -227,17 +230,6 @@ export function captureException(error: Error, context?: Record<string, any>): v
   }
   
   sentryScope.captureException(error);
-}
-
-/**
- * Set user context for Sentry events.
- */
-export function setUser(user: { id?: string; email?: string; username?: string }): void {
-  if (!sentryScope) {
-    return;
-  }
-
-  sentryScope.setUser(user);
 }
 
 /**
