@@ -3,6 +3,11 @@ import * as sentryVscode from '../utils/sentryVscode';
 import { addBreadcrumb } from '../utils/sentry';
 import OutlineStore from '../stores/outlineStore';
 
+function isDocumentOpen(uri: vscode.Uri): boolean {
+  const key = uri.toString();
+  return vscode.workspace.textDocuments.some(doc => doc.uri.toString() === key);
+}
+
 export default class WorkspaceEventHandlerProvider {
   public constructor(
     private outlineStore: OutlineStore,
@@ -11,19 +16,74 @@ export default class WorkspaceEventHandlerProvider {
 
   public register(): vscode.Disposable[] {
     return [
-      // We don't care about whether flagpole.yaml is open or not:
-      // sentryVscode.workspace.onDidOpenTextDocument(),
+      // Refresh when a flagpole file is (re)opened, in case its outline was
+      // computed from an older version of the file:
+      sentryVscode.workspace.onDidOpenTextDocument(this.handleDidOpenTextDocument, this),
+      // We don't care about these:
       // sentryVscode.workspace.onDidSaveTextDocument(),
       // sentryVscode.workspace.onDidCloseTextDocument(),
 
       // We do care if flagpole.yaml is changed:
       sentryVscode.workspace.onDidChangeTextDocument(this.handleDidChangeTextDocument, this),
-      
+
       // We do care if the workspace itself is changed:
       sentryVscode.workspace.onDidRenameFiles(this.handleDidRenameFiles, this),
       sentryVscode.workspace.onDidChangeWorkspaceFolders(this.handleDidChangeWorkspaceFolders, this),
+
+      // We do care if flagpole.yaml is changed on disk outside the editor,
+      // e.g. by git pull/rebase/checkout running in the background:
+      ...this.registerFileSystemWatcher(),
     ];
   }
+
+  /**
+   * Watch for flagpole files changing on disk. TextDocument events only fire
+   * for open editors, so without this, background updates (git pull, rebase,
+   * checkout, ...) to closed files would never refresh the outline.
+   */
+  private registerFileSystemWatcher(): vscode.Disposable[] {
+    const pattern = this.documentFilter.pattern;
+    if (!pattern) {
+      return [];
+    }
+
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+
+    const handleDiskChange = (uri: vscode.Uri) => {
+      // Open documents are handled through onDidChangeTextDocument: when the
+      // file is clean VSCode reloads the buffer (firing that event), and when
+      // it is dirty the buffer -- which symbols are computed from -- hasn't
+      // changed. Only closed files need a refresh from here.
+      if (isDocumentOpen(uri)) {
+        return;
+      }
+      addBreadcrumb('Refreshing outline for file changed on disk', 'workspace', 'info', {
+        uri: uri.toString(),
+      });
+      this.outlineStore.fire({uri});
+    };
+
+    return [
+      watcher,
+      watcher.onDidCreate(handleDiskChange),
+      watcher.onDidChange(handleDiskChange),
+      watcher.onDidDelete((uri) => {
+        addBreadcrumb('Forgetting outline for file deleted on disk', 'workspace', 'info', {
+          uri: uri.toString(),
+        });
+        this.outlineStore.forgetOutline(uri);
+      }),
+    ];
+  }
+
+  /**
+   * An event that is emitted when a {@link TextDocument text document} is opened.
+   */
+  handleDidOpenTextDocument = async (document: vscode.TextDocument) => {
+    if (vscode.languages.match(this.documentFilter, document)) {
+      await this.outlineStore.refreshIfStale(document.uri);
+    }
+  };
 
   /**
    * An event that is emitted when a {@link TextDocument text document} is changed. This usually happens
