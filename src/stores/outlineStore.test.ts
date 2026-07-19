@@ -235,3 +235,177 @@ suite('OutlineStore.documentSymbolsToMap', () => {
     assert.ok(result.selectionRange.isEqual(selRange));
   });
 });
+
+function makeOptions(flagName: string, line: number = 0): vscode.DocumentSymbol {
+  const range = new vscode.Range(line, 0, line + 5, 0);
+  const options = new vscode.DocumentSymbol('options', '', vscode.SymbolKind.Property, range, range);
+  const feature = new vscode.DocumentSymbol(flagName, '', vscode.SymbolKind.Property, range, range);
+  feature.children = [
+    makeSymbol('created_at', '2025-01-01'),
+    makeSymbol('owner', 'team-x'),
+  ];
+  options.children = [feature];
+  return options;
+}
+
+type SymbolsResponse = undefined | vscode.DocumentSymbol[];
+
+class FakeSymbolsOutlineStore extends OutlineStore {
+  public fetchCount = 0;
+  public documentVersion: undefined | number = undefined;
+
+  constructor(private responses: Array<() => Promise<SymbolsResponse>>) {
+    super();
+  }
+
+  protected override fetchSymbols(_uri: vscode.Uri): Promise<SymbolsResponse> {
+    const next = this.responses[Math.min(this.fetchCount, this.responses.length - 1)];
+    this.fetchCount += 1;
+    return next();
+  }
+
+  protected override fetchSymbolsOnce(uri: vscode.Uri): Thenable<SymbolsResponse> {
+    return this.fetchSymbols(uri);
+  }
+
+  protected override getDocumentVersion(_uri: vscode.Uri): undefined | number {
+    return this.documentVersion;
+  }
+}
+
+suite('OutlineStore caching', () => {
+  test('getOutline caches by uri value, not object identity', async () => {
+    const store = new FakeSymbolsOutlineStore([
+      () => Promise.resolve([makeOptions('feature.organizations:flag-a')]),
+    ]);
+
+    const outline1 = await store.getOutline(vscode.Uri.parse('file:///test/flagpole.yaml'));
+    const outline2 = await store.getOutline(vscode.Uri.parse('file:///test/flagpole.yaml'));
+    assert.ok(outline1);
+    assert.strictEqual(outline1, outline2);
+    assert.strictEqual(store.fetchCount, 1);
+    store.dispose();
+  });
+
+  test('getOutline recomputes when the document version changes', async () => {
+    const store = new FakeSymbolsOutlineStore([
+      () => Promise.resolve([makeOptions('feature.organizations:flag-a')]),
+      () => Promise.resolve([makeOptions('feature.organizations:flag-b')]),
+    ]);
+    store.documentVersion = 1;
+
+    const outline1 = await store.getOutline(uri);
+    store.documentVersion = 2;
+    const outline2 = await store.getOutline(uri);
+
+    assert.ok(outline1 && outline2);
+    assert.notStrictEqual(outline1, outline2);
+    assert.strictEqual(outline2.map?.allFeatures[0].name, 'feature.organizations:flag-b');
+    assert.strictEqual(store.fetchCount, 2);
+    store.dispose();
+  });
+
+  test('concurrent getOutline calls share one computation', async () => {
+    let resolveSymbols: (value: SymbolsResponse) => void;
+    const store = new FakeSymbolsOutlineStore([
+      () => new Promise(resolve => { resolveSymbols = resolve; }),
+    ]);
+
+    const promise1 = store.getOutline(uri);
+    const promise2 = store.getOutline(uri);
+    resolveSymbols!([makeOptions('feature.organizations:flag-a')]);
+
+    const [outline1, outline2] = await Promise.all([promise1, promise2]);
+    assert.ok(outline1);
+    assert.strictEqual(outline1, outline2);
+    assert.strictEqual(store.fetchCount, 1);
+    store.dispose();
+  });
+
+  test('a slow older computation cannot overwrite a newer one', async () => {
+    let resolveSlow: (value: SymbolsResponse) => void;
+    const store = new FakeSymbolsOutlineStore([
+      () => new Promise(resolve => { resolveSlow = resolve; }),
+      () => Promise.resolve([makeOptions('feature.organizations:flag-new')]),
+    ]);
+
+    const slowFire = store.fire({uri});
+    const fastFire = store.fire({uri});
+    await fastFire;
+    resolveSlow!([makeOptions('feature.organizations:flag-old')]);
+    await slowFire;
+
+    const outline = await store.getOutline(uri);
+    assert.strictEqual(outline?.map?.allFeatures[0].name, 'feature.organizations:flag-new');
+    store.dispose();
+  });
+
+  test('fire only notifies listeners for the newest generation', async () => {
+    let resolveSlow: (value: SymbolsResponse) => void;
+    const store = new FakeSymbolsOutlineStore([
+      () => new Promise(resolve => { resolveSlow = resolve; }),
+      () => Promise.resolve([makeOptions('feature.organizations:flag-new')]),
+    ]);
+    const seen: string[] = [];
+    store.event(outline => {
+      seen.push(outline.map?.allFeatures[0].name ?? '?');
+    });
+
+    const slowFire = store.fire({uri});
+    const fastFire = store.fire({uri});
+    await fastFire;
+    resolveSlow!([makeOptions('feature.organizations:flag-old')]);
+    await slowFire;
+
+    assert.deepStrictEqual(seen, ['feature.organizations:flag-new']);
+    store.dispose();
+  });
+
+  test('forgetOutline drops the cache for equal but distinct Uri instances', async () => {
+    const store = new FakeSymbolsOutlineStore([
+      () => Promise.resolve([makeOptions('feature.organizations:flag-a')]),
+      () => Promise.resolve([makeOptions('feature.organizations:flag-b')]),
+    ]);
+
+    await store.getOutline(vscode.Uri.parse('file:///test/flagpole.yaml'));
+    store.forgetOutline(vscode.Uri.parse('file:///test/flagpole.yaml'));
+    const outline = await store.getOutline(vscode.Uri.parse('file:///test/flagpole.yaml'));
+
+    assert.strictEqual(outline?.map?.allFeatures[0].name, 'feature.organizations:flag-b');
+    assert.strictEqual(store.fetchCount, 2);
+    store.dispose();
+  });
+
+  test('refreshIfStale is a no-op when versions match and refreshes when they differ', async () => {
+    const store = new FakeSymbolsOutlineStore([
+      () => Promise.resolve([makeOptions('feature.organizations:flag-a')]),
+      () => Promise.resolve([makeOptions('feature.organizations:flag-b')]),
+    ]);
+    store.documentVersion = 1;
+
+    await store.fire({uri});
+    await store.refreshIfStale(uri);
+    assert.strictEqual(store.fetchCount, 1);
+
+    store.documentVersion = 2;
+    await store.refreshIfStale(uri);
+    assert.strictEqual(store.fetchCount, 2);
+    const outline = await store.getOutline(uri);
+    assert.strictEqual(outline?.map?.allFeatures[0].name, 'feature.organizations:flag-b');
+    store.dispose();
+  });
+
+  test('knownUris reflects cached outlines', async () => {
+    const store = new FakeSymbolsOutlineStore([
+      () => Promise.resolve([makeOptions('feature.organizations:flag-a')]),
+    ]);
+
+    assert.strictEqual(store.knownUris().length, 0);
+    await store.getOutline(uri);
+    assert.strictEqual(store.knownUris().length, 1);
+    assert.strictEqual(store.knownUris()[0].toString(), uri.toString());
+    store.forgetOutline(uri);
+    assert.strictEqual(store.knownUris().length, 0);
+    store.dispose();
+  });
+});
