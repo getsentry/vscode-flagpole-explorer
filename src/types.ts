@@ -57,7 +57,19 @@ export type NotEqualsCondition = {
   value: number | string | boolean | number[] | string[];
 };
 
-export type Condition = InCondition | NotInCondition | ContainsCondition | NotContainsCondition | EqualsCondition | NotEqualsCondition;
+export type MatchesCondition = {
+  operator: 'matches';
+  property: PropertyName;
+  value: string[];
+};
+
+export type NotMatchesCondition = {
+  operator: 'not_matches';
+  property: PropertyName;
+  value: string[];
+};
+
+export type Condition = InCondition | NotInCondition | ContainsCondition | NotContainsCondition | EqualsCondition | NotEqualsCondition | MatchesCondition | NotMatchesCondition;
 
 export type OperatorName = Condition['operator'];
 export type PropertyName = 
@@ -122,4 +134,6 @@ export const OPERATORS: OperatorName[] = [
   'not_contains',
   'equals',
   'not_equals',
+  'matches',
+  'not_matches',
 ];
