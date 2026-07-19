@@ -40,6 +40,7 @@ function makeSegment(name: string, range: vscode.Range): LogicalSegment {
     rollout: 100,
     conditionsSymbol: undefined,
     conditions: [],
+    hasConditions: false,
     rolloutState: '100%',
   };
 }

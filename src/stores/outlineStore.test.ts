@@ -9,6 +9,16 @@ function makeSymbol(name: string, detail: string, children: vscode.DocumentSymbo
   return sym;
 }
 
+// Mirrors the YAML language server's `getDetail`: an array symbol's `detail`
+// is `'[]'` when empty and `undefined` when it has items.
+function makeConditions(children: vscode.DocumentSymbol[] = []): vscode.DocumentSymbol {
+  const detail = children.length ? undefined : '[]';
+  const range = new vscode.Range(0, 0, 0, 0);
+  const sym = new vscode.DocumentSymbol('conditions', detail as unknown as string, vscode.SymbolKind.Array, range, range);
+  sym.children = children;
+  return sym;
+}
+
 const uri = vscode.Uri.parse('file:///test/flagpole.yaml');
 
 class TestableOutlineStore extends OutlineStore {
@@ -52,7 +62,7 @@ suite('OutlineStore.documentSymbolsToMap', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]),
@@ -102,7 +112,7 @@ suite('OutlineStore.documentSymbolsToMap', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]),
@@ -113,7 +123,7 @@ suite('OutlineStore.documentSymbolsToMap', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -193,7 +203,7 @@ suite('OutlineStore.documentSymbolsToMap', () => {
           makeSymbol('0', '', [
             makeSymbol('name', 'LA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', [
+            makeConditions([
               makeSymbol('0', '', [
                 makeSymbol('operator', 'in'),
                 makeSymbol('property', 'organization_slug'),
@@ -209,7 +219,7 @@ suite('OutlineStore.documentSymbolsToMap', () => {
           makeSymbol('1', '', [
             makeSymbol('name', 'GA'),
             makeSymbol('rollout', '100'),
-            makeSymbol('conditions', '', []),
+            makeConditions([]),
           ]),
         ]),
       ]),
