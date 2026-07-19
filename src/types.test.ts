@@ -122,8 +122,8 @@ suite('types', () => {
   });
 
   suite('OPERATORS', () => {
-    test('contains all six operators', () => {
-      assert.strictEqual(OPERATORS.length, 6);
+    test('contains all eight operators', () => {
+      assert.strictEqual(OPERATORS.length, 8);
     });
 
     test('includes each expected operator', () => {
@@ -133,6 +133,8 @@ suite('types', () => {
       assert.ok(OPERATORS.includes('not_contains'));
       assert.ok(OPERATORS.includes('equals'));
       assert.ok(OPERATORS.includes('not_equals'));
+      assert.ok(OPERATORS.includes('matches'));
+      assert.ok(OPERATORS.includes('not_matches'));
     });
   });
 });
