@@ -25,13 +25,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
       - name: Setup Node v${{ env.node-version }}
         uses: actions/setup-node@3235b876344d2a9aa001b8d1453c930bba69e610 # v3
         with:
           node-version: ${{ env.node-version }}
-          cache: "yarn"
+          cache: "pnpm"
 
-      - run: yarn install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
 
       - name: Fetch next version
         uses: mathieudutour/github-tag-action@aacd18f07c808c12edb372dc9f9e7160f06c72e8 # v6.1
@@ -41,14 +44,14 @@ jobs:
           release_branches: main
           dry_run: true
 
-      - run: yarn run lint
+      - run: pnpm run lint
 
-      - run: yarn run check-types
+      - run: pnpm run check-types
 
-      # - name: yarn run test
+      # - name: pnpm run test
       #   uses: GabrielBB/xvfb-action@fe2609f8182a9ed5aee7d53ff3ed04098a904df2 # v1.0
       #   with:
-      #     run: yarn run test
+      #     run: pnpm run test
 
       - name: Set package.json version to ${{ steps.find_version.outputs.new_version }}
         run: >
@@ -62,6 +65,9 @@ jobs:
         with:
           pat: FAKE_FOR_PACKAGE
           dryRun: true
+          # The extension is bundled by esbuild, so vsce does not need to walk
+          # node_modules — and `npm list` cannot parse pnpm's symlinked tree.
+          dependencies: false
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
