@@ -202,25 +202,6 @@ export function startManualSpan(operationName: string, op: string = 'operation')
 }
 
 /**
- * Capture a message to Sentry with optional context.
- */
-export function captureMessage(
-  message: string,
-  level: SeverityLevel = 'info',
-  context?: Record<string, any>
-): void {
-  if (!sentryScope) {
-    return;
-  }
-
-  if (context) {
-    sentryScope.setContext('additional', context);
-  }
-  
-  sentryScope.captureMessage(message, level);
-}
-
-/**
  * Capture an exception to Sentry with optional context.
  */
 export function captureException(error: Error, context?: Record<string, any>): void {

@@ -34,7 +34,7 @@
       "files.associations": {
         "flagpole.yaml": "yaml"
       },
-      "yaml.maxItemsComputed": 10000
+      "yaml.maxItemsComputed": 50000
     },
     "configuration": {
       "title": "Flagpole Explorer",
@@ -193,7 +193,8 @@
   },
   "dependencies": {
     "@sentry/node": "10.32.1",
-    "glob": "13.0.0"
+    "glob": "13.0.0",
+    "yaml": "2.9.0"
   },
   "devDependencies": {
     "@sentry/esbuild-plugin": "4.9.0",

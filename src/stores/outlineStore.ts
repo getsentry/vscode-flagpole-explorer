@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { addBreadcrumb, captureMessage } from '../utils/sentry';
+import parseFlagpoleSymbols from '../transform/parseFlagpoleSymbols';
 import {
   LogicalCondition,
   LogicalFeature,
@@ -23,7 +23,6 @@ type SymbolMap = undefined | {
 
 export type Outline = {
   uri: vscode.Uri,
-  symbols: vscode.DocumentSymbol[],
   map: SymbolMap,
 };
 
@@ -34,15 +33,6 @@ type CacheEntry = {
   documentVersion: undefined | number;
 };
 
-const SYMBOLS_RETRY_LIMIT_MS = 5_000;
-
-// The YAML language server re-parses asynchronously after a document change,
-// so symbols requested immediately after a change can be computed from the
-// previous content. We re-request after this delay and compare; see
-// scheduleVerification().
-const VERIFY_DELAY_MS = 1_000;
-const VERIFY_MAX_ROUNDS = 3;
-
 export default class OutlineStore extends vscode.EventEmitter<Outline> {
   // All keys are uri.toString(): vscode.Uri instances are not canonical, and
   // keying by object identity would let the same file hold multiple,
@@ -50,7 +40,6 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
   private _cache: Map<string, CacheEntry> = new Map();
   private _pending: Map<string, Promise<undefined | Outline>> = new Map();
   private _generations: Map<string, number> = new Map();
-  private _verifyTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   private _initialLoad: Promise<void>;
   private _resolveReady!: () => void;
@@ -139,14 +128,12 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
     this._generations.set(key, generation);
     // In-flight computations were started against older content.
     this._pending.delete(key);
-    this.clearVerifyTimer(key);
 
     const outline = await this.computeOutline(uri);
     if (!outline || this._generations.get(key) !== generation) {
       return;
     }
     super.fire(outline);
-    this.scheduleVerification(uri, generation, 0);
   }
 
   /**
@@ -186,29 +173,13 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
     this._generations.set(key, (this._generations.get(key) ?? 0) + 1);
     this._cache.delete(key);
     this._pending.delete(key);
-    this.clearVerifyTimer(key);
-  }
-
-  public override dispose(): void {
-    for (const timer of this._verifyTimers.values()) {
-      clearTimeout(timer);
-    }
-    this._verifyTimers.clear();
-    super.dispose();
   }
 
   /**
-   * Seam for tests: production behavior polls the document symbol provider.
+   * Seam for tests: production behavior parses the document text ourselves.
    */
   protected fetchSymbols(uri: vscode.Uri): Promise<undefined | vscode.DocumentSymbol[]> {
-    return getSymbols(uri);
-  }
-
-  /**
-   * Seam for tests: the single-shot request used by the verification pass.
-   */
-  protected fetchSymbolsOnce(uri: vscode.Uri): Thenable<undefined | vscode.DocumentSymbol[]> {
-    return requestSymbols(uri);
+    return parseSymbols(uri);
   }
 
   /**
@@ -244,7 +215,7 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
       if (!symbols) {
         return undefined;
       }
-      const outline: Outline = {uri, symbols, map: OutlineStore.documentSymbolsToMap(uri, symbols)};
+      const outline: Outline = {uri, map: OutlineStore.documentSymbolsToMap(uri, symbols)};
       if (this._generations.get(key) === generation || this._generations.get(key) === undefined) {
         this._cache.set(key, {outline, documentVersion});
       }
@@ -253,75 +224,9 @@ export default class OutlineStore extends vscode.EventEmitter<Outline> {
     this._pending.set(key, promise);
     return promise;
   }
-
-  /**
-   * Re-request symbols after the YAML language server has had time to
-   * re-parse, and correct the cache if the first response was stale.
-   */
-  private scheduleVerification(uri: vscode.Uri, generation: number, round: number): void {
-    if (round >= VERIFY_MAX_ROUNDS) {
-      return;
-    }
-    const key = uri.toString();
-    this.clearVerifyTimer(key);
-    const timer = setTimeout(async () => {
-      this._verifyTimers.delete(key);
-      if (this._generations.get(key) !== generation) {
-        return;
-      }
-      const symbols = await this.fetchSymbolsOnce(uri);
-      if (!symbols || this._generations.get(key) !== generation) {
-        return;
-      }
-      const cached = this._cache.get(key);
-      if (!cached || fingerprintSymbols(cached.outline.symbols) === fingerprintSymbols(symbols)) {
-        return;
-      }
-
-      addBreadcrumb('Corrected stale document symbols', 'outline', 'info', {
-        uri: uri.toString(),
-        round,
-      });
-      const outline: Outline = {uri, symbols, map: OutlineStore.documentSymbolsToMap(uri, symbols)};
-      this._cache.set(key, {outline, documentVersion: this.getDocumentVersion(uri)});
-      super.fire(outline);
-      this.scheduleVerification(uri, generation, round + 1);
-    }, VERIFY_DELAY_MS);
-    this._verifyTimers.set(key, timer);
-  }
-
-  private clearVerifyTimer(key: string): void {
-    const timer = this._verifyTimers.get(key);
-    if (timer) {
-      clearTimeout(timer);
-      this._verifyTimers.delete(key);
-    }
-  }
 }
 
-function requestSymbols(uri: vscode.Uri): Thenable<undefined | vscode.DocumentSymbol[]> {
-  return vscode.commands.executeCommand<undefined | vscode.DocumentSymbol[]>(
-    'vscode.executeDocumentSymbolProvider',
-    uri
-  );
-}
-
-function fingerprintSymbols(symbols: vscode.DocumentSymbol[]): string {
-  return symbols
-    .map(s => `${s.name}@${s.range.start.line}.${s.range.start.character}-${s.range.end.line}.${s.range.end.character}[${fingerprintSymbols(s.children)}]`)
-    .join(';');
-}
-
-function getSymbols(uri: vscode.Uri, timeout: number = 0): Promise<undefined | vscode.DocumentSymbol[]> {
-  if (timeout > SYMBOLS_RETRY_LIMIT_MS) {
-    captureMessage('Timed out waiting for document symbols', 'warning', {
-      uri: uri.toString(),
-    });
-    return Promise.resolve(undefined);
-  }
-  return new Promise(resolve => {
-    setTimeout(() => {
-      requestSymbols(uri).then((symbols) => resolve(symbols ? symbols : getSymbols(uri, timeout + 1_000)));
-    }, timeout);
-  });
+async function parseSymbols(uri: vscode.Uri): Promise<undefined | vscode.DocumentSymbol[]> {
+  const document = await vscode.workspace.openTextDocument(uri);
+  return parseFlagpoleSymbols(document);
 }

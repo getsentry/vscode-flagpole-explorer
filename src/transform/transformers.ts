@@ -161,9 +161,19 @@ export function symbolToLogicalCondition(
     uri,
     operator: operator?.detail ?? '',
     property: property?.detail ?? '',
-    value: value?.detail || ['...'],
-    // TODO: we could go and read all the values in the array, but it'll be a bit
-    // slower, and there are often a lot of values that makes things scroll a lot
-    // value: (value?.detail || value?.children.map(child => ...)) ?? '',
+    value: conditionValue(value),
   };
+}
+
+/**
+ * A condition's `value` is either a scalar (its `detail`) or a list, whose items
+ * arrive as child symbols each carrying their scalar `detail`. An empty or
+ * missing value falls back to `['...']` so the UI still renders a placeholder.
+ */
+function conditionValue(value: vscode.DocumentSymbol | undefined): string | string[] {
+  if (value?.detail) {
+    return value.detail;
+  }
+  const items = value?.children.map(child => child.detail).filter(detail => detail !== undefined) ?? [];
+  return items.length ? items : ['...'];
 }

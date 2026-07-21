@@ -4,6 +4,11 @@ const path = require('path');
 const copyStaticFiles = require('esbuild-copy-static-files');
 const { sentryEsbuildPlugin } = require("@sentry/esbuild-plugin");
 
+// This is a web extension: `main`/`browser` both point at one bundle that runs
+// in VS Code's browser worker. `yaml`'s Node build does `require('process')`,
+// which throws there, so pull in its `process`-free browser build instead.
+const yamlBrowserBuild = path.resolve(__dirname, 'node_modules/yaml/browser/index.js');
+
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -16,6 +21,7 @@ async function main() {
     sourcemap: production ? 'external' : false,
     sourcesContent: false,
     platform: 'node',
+    alias: { yaml: yamlBrowserBuild },
     outdir: 'dist/',
     logLevel: 'warning',
   };
