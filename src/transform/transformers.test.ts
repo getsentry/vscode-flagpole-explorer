@@ -86,6 +86,21 @@ suite('transformers', () => {
       const result = symbolToLogicalCondition(uri, parent, conditionSymbol);
       assert.deepStrictEqual(result.value, ['...']);
     });
+
+    test('reads a list value from its child items', () => {
+      const parent = makeConditions([]);
+      const value = makeSymbol('value', '', [
+        makeSymbol('0', 'sentry'),
+        makeSymbol('1', 'charlie-test'),
+      ]);
+      const conditionSymbol = makeSymbol('0', '', [
+        makeSymbol('operator', 'in'),
+        makeSymbol('property', 'organization_slug'),
+        value,
+      ]);
+      const result = symbolToLogicalCondition(uri, parent, conditionSymbol);
+      assert.deepStrictEqual(result.value, ['sentry', 'charlie-test']);
+    });
   });
 
   suite('symbolToLogicalSegment', () => {

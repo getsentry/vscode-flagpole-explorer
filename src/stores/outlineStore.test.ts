@@ -274,10 +274,6 @@ class FakeSymbolsOutlineStore extends OutlineStore {
     return next();
   }
 
-  protected override fetchSymbolsOnce(uri: vscode.Uri): Thenable<SymbolsResponse> {
-    return this.fetchSymbols(uri);
-  }
-
   protected override getDocumentVersion(_uri: vscode.Uri): undefined | number {
     return this.documentVersion;
   }
