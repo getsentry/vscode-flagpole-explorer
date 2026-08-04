@@ -48,6 +48,16 @@ suite('treeViewItems', () => {
       assert.ok(item.iconPath instanceof vscode.ThemeIcon);
       assert.strictEqual((item.iconPath as vscode.ThemeIcon).id, 'json');
     });
+
+    test('label defaults to resourceUri basename when not provided', () => {
+      const item = new FileTreeItem(uri, '42');
+      assert.strictEqual(item.label, undefined);
+    });
+
+    test('uses provided label to disambiguate same-named files', () => {
+      const item = new FileTreeItem(uri, '42', 'options/default/flagpole.yaml');
+      assert.strictEqual(item.label, 'options/default/flagpole.yaml');
+    });
   });
 
   suite('ValueTreeItem', () => {

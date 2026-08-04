@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import OutlineStore from '../stores/outlineStore';
 import { FeatureTreeItem, FileTreeItem, ValueTreeItem } from '../treeview/treeViewItems';
 import { getRolloutStateIconPath } from '../utils/getRolloutStateIconPath';
+import { getDisambiguatedLabel } from '../utils/getDisambiguatedLabel';
 import { LogicalFeature, LogicalValue } from '../transform/transformers';
 import { RolloutState } from '../types';
 
@@ -24,7 +25,8 @@ abstract class FlagsByCategoryTreeProvider implements vscode.TreeDataProvider<Ca
   public async getTreeItem(element: CategoryTreeViewElement): Promise<vscode.TreeItem> {
     if (element instanceof vscode.Uri) {
       const outline = await this.outlineStore.getOutline(element);
-      return new FileTreeItem(element, String(Object.keys(outline?.map?.[this.valueMapName] ?? {}).length));
+      const label = getDisambiguatedLabel(element, this.outlineStore.knownUris());
+      return new FileTreeItem(element, String(Object.keys(outline?.map?.[this.valueMapName] ?? {}).length), label);
     } else if (element instanceof LogicalValue) {
       return this.getValueTreeItem(element);
     } else {

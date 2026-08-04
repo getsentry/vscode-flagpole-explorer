@@ -6,8 +6,12 @@ export class FileTreeItem extends vscode.TreeItem {
   constructor(
     uri: vscode.Uri,
     description: string,
+    label?: string,
   ) {
     super(uri, vscode.TreeItemCollapsibleState.Expanded);
+    if (label !== undefined) {
+      this.label = label;
+    }
     this.description = description;
     this.iconPath = new vscode.ThemeIcon('json');
   }
