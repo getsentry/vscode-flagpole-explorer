@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import OutlineStore from '../stores/outlineStore';
 import { FeatureTreeItem, FileTreeItem } from '../treeview/treeViewItems';
 import { LogicalFeature } from '../transform/transformers';
+import { getDisambiguatedLabel } from '../utils/getDisambiguatedLabel';
 
 type TreeViewElement = vscode.Uri | LogicalFeature;
 
@@ -18,7 +19,8 @@ export default class FlagsByNameTreeViewProvider implements vscode.TreeDataProvi
   public async getTreeItem(element: TreeViewElement): Promise<vscode.TreeItem> {
     if (element instanceof vscode.Uri) {
       const outline = await this.outlineStore.getOutline(element);
-      return new FileTreeItem(element, String(outline?.map?.allFeatures.length ?? ''));
+      const label = getDisambiguatedLabel(element, this.outlineStore.knownUris());
+      return new FileTreeItem(element, String(outline?.map?.allFeatures.length ?? ''), label);
     } else {
       return new FeatureTreeItem(element);
     }
