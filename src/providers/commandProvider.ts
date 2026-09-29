@@ -1,26 +1,12 @@
-import { execFile } from 'child_process';
 import * as vscode from 'vscode';
 import * as sentryVscode from '../utils/sentryVscode';
 import { OPERATORS, PROPERTIES } from '../types';
 import EvaluateView from '../view/evaluateView';
 import { CommandRunner } from './terminalProvider';
 import { LogicalFeature, logicalFeatureToFeature } from '../transform/transformers';
-import cliVersionProblem from '../utils/sentryOptionsCliVersion';
+import { cliProblem, expandHome, shellQuote } from '../utils/sentryOptionsCli';
 
 const CLI_INSTALL_URL = 'https://github.com/getsentry/sentry-options/releases';
-
-/**
- * Runs `<bin> --version` through the user's login shell, so it resolves `bin`
- * the same way the evaluation terminal will.
- */
-function readCliVersion(bin: string): Promise<string> {
-  const shell = process.env.SHELL || '/bin/sh';
-  return new Promise((resolve) => {
-    execFile(shell, ['-lc', `${bin} --version`], { timeout: 5_000 }, (error, stdout, stderr) => {
-      resolve(error ? `${stderr || error.message}` : stdout);
-    });
-  });
-}
 
 export default class CommandProvider {
   constructor(
@@ -150,20 +136,7 @@ export default class CommandProvider {
   ) => {
     const config = vscode.workspace.getConfiguration('flagpole-explorer.eval');
     const bin = config.get('bin', 'sentry-options-cli');
-    const flagpoleFile = config.get('flagpole-file');
-
-    const problem = cliVersionProblem(await readCliVersion(bin));
-    if (problem) {
-      const install = 'Install instructions';
-      const choice = await vscode.window.showErrorMessage(
-        `${problem} Install it with \`cargo install sentry-options-cli\` or from the sentry-options releases, or point flagpole-explorer.eval.bin at it.`,
-        install,
-      );
-      if (choice === install) {
-        vscode.env.openExternal(vscode.Uri.parse(CLI_INSTALL_URL));
-      }
-      return;
-    }
+    const flagpoleFile = expandHome(config.get('flagpole-file', ''), process.env.HOME ?? '~');
 
     const runner = await CommandRunner.factory(vscode.window.createTerminal({
       name: flagName,
@@ -174,19 +147,26 @@ export default class CommandProvider {
     }), 5_000);
     runner.terminal.show(false);
 
-    // Prefix the command with `;\n\n` to end any partial commands that are being
-    // executed, and just run ours.
-    const flagpoleCmd = runner.run(
-      {bin: `;\n\n${bin}`, args: [
-        'eval',
-        `--values=${flagpoleFile}`,
-        `--flag=${flagName}`,
-        // JANKY!!!
-        // Double-stringify to escape quotes in a way that works for the shell too.
-        `--context=${JSON.stringify(JSON.stringify(context))}`,
-      ]},
-      {timeout: 1_000}
-    );
-    await flagpoleCmd.execution;
+    // Every value is quoted, so settings and context can't inject shell syntax.
+    const commandLine = [
+      bin,
+      'eval',
+      `--values=${flagpoleFile}`,
+      `--flag=${flagName}`,
+      `--context=${JSON.stringify(context)}`,
+    ].map(shellQuote).join(' ');
+    const exitCode = await runner.run(commandLine, {timeout: 10_000}).exitCode;
+
+    const problem = cliProblem(exitCode);
+    if (problem) {
+      const install = 'Install instructions';
+      const choice = await vscode.window.showErrorMessage(
+        `${problem} Install it with \`cargo install sentry-options-cli\` or from the sentry-options releases, or point flagpole-explorer.eval.bin at it.`,
+        install,
+      );
+      if (choice === install) {
+        void vscode.env.openExternal(vscode.Uri.parse(CLI_INSTALL_URL));
+      }
+    }
   };
 }
