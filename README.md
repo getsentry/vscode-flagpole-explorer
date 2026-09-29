@@ -23,7 +23,7 @@ If you're dealing with Flagpole inside Sentry, then the extension is already par
     - Icons to indicate the rollout status of a flag
     - Icons to indicate the rollout status of a given segment within a flag
     - Buttons to make it easier to insert or append new flags/segments/conditions within the existing file
-    - A button to 'Evaluate' a flag. Test conditions offline before committing your change
+    - A button to 'Evaluate' a flag. Test conditions offline before committing your change. This needs `sentry-options-cli` 1.2.13 or later on your `PATH` (`cargo install sentry-options-cli`, or a binary from the [sentry-options releases](https://github.com/getsentry/sentry-options/releases)).
 
 - Colors/Icons are used to indicate flags that are:
     - Green: fully rolled out, at least one segment has no conditions, the flag is true for all.

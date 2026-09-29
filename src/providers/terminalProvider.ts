@@ -33,17 +33,19 @@ export class CommandRunner {
     public shellIntegration: vscode.TerminalShellIntegration,
   ) {}
 
-  public run(
-    cmd: {bin: string, args: string[]},
-    options: {timeout: number}
-  ): Command {
-    const shellExecution = this.shellIntegration.executeCommand(cmd.bin, cmd.args);    
+  /**
+   * Run `commandLine` exactly as written. Callers must shell-quote anything
+   * that isn't meant to be shell syntax.
+   */
+  public run(commandLine: string, options: {timeout: number}): Command {
+    const shellExecution = this.shellIntegration.executeCommand(commandLine);
     return new Command(shellExecution, options.timeout);
   }
 }
 
 class Command {
-  public execution: Promise<vscode.TerminalShellExecution>;
+  /** Resolves with the command's exit code, `undefined` if the shell didn't report one. */
+  public exitCode: Promise<number | undefined>;
 
   constructor(
     shellExecution: vscode.TerminalShellExecution,
@@ -52,7 +54,7 @@ class Command {
     addBreadcrumb('Terminal command started', 'terminal', 'info', { timeout });
     const endSpan = startManualSpan('terminal.command', 'terminal');
 
-    this.execution = createTimeoutPromise<vscode.TerminalShellExecution>(
+    this.exitCode = createTimeoutPromise<number | undefined>(
       timeout,
       'Terminal command execution',
       (resolve) => {
@@ -62,7 +64,7 @@ class Command {
               addBreadcrumb('Terminal command completed', 'terminal', 'info', {
                 exitCode: event.exitCode,
               });
-              resolve(shellExecution);
+              resolve(event.exitCode);
             }
           }
         );
