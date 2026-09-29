@@ -65,15 +65,10 @@
           "description": "Show Evaluate inline action",
           "default": true
         },
-        "flagpole-explorer.eval.sentry-workspace": {
-          "type": "string",
-          "description": "The location of the `getsentry/sentry` workspace",
-          "default": "$HOME/code/sentry"
-        },
         "flagpole-explorer.eval.bin": {
           "type": "string",
-          "description": "The path of the evaluation binary, relative to the `getsentry/sentry` workspace",
-          "default": "./src/flagpole/flagpole_eval.py"
+          "description": "The `sentry-options-cli` binary used to evaluate flags (1.2.13 or later)",
+          "default": "sentry-options-cli"
         },
         "flagpole-explorer.eval.flagpole-file": {
           "type": "string",

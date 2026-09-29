@@ -132,8 +132,7 @@ export default class CommandProvider {
     },
   ) => {
     const config = vscode.workspace.getConfiguration('flagpole-explorer.eval');
-    const bin = config.get('bin', './bin/flagpole');
-    const cwd = config.get('sentry-workspace', '~/code/sentry');
+    const bin = config.get('bin', 'sentry-options-cli');
     const flagpoleFile = config.get('flagpole-file');
 
     const runner = await CommandRunner.factory(vscode.window.createTerminal({
@@ -146,19 +145,15 @@ export default class CommandProvider {
     runner.terminal.show(false);
 
     // Prefix the command with `;\n\n` to end any partial commands that are being
-    // executed, and just run ours. If `direnv` is already running that's ok,
-    // we're going to call `direnv exec` again anyway in the correct folder.
+    // executed, and just run ours.
     const flagpoleCmd = runner.run(
-      {bin: ';\n\ndirenv', args: [
-        'exec',
-        cwd,
-        `${cwd}/${bin}`,
-        `--flagpole-file=${flagpoleFile}`,
-        `--flag-name=${flagName}`,
-        `--`,
+      {bin: `;\n\n${bin}`, args: [
+        'eval',
+        `--values=${flagpoleFile}`,
+        `--flag=${flagName}`,
         // JANKY!!!
         // Double-stringify to escape quotes in a way that works for the shell too.
-        JSON.stringify(JSON.stringify(context)) 
+        `--context=${JSON.stringify(JSON.stringify(context))}`,
       ]},
       {timeout: 1_000}
     );
