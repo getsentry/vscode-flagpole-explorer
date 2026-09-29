@@ -135,8 +135,9 @@ export default class CommandProvider {
     },
   ) => {
     const config = vscode.workspace.getConfiguration('flagpole-explorer.eval');
-    const bin = config.get('bin', 'sentry-options-cli');
-    const flagpoleFile = expandHome(config.get('flagpole-file', ''), process.env.HOME ?? '~');
+    const home = process.env.HOME ?? '~';
+    const bin = expandHome(config.get('bin', 'sentry-options-cli'), home);
+    const flagpoleFile = expandHome(config.get('flagpole-file', ''), home);
 
     const runner = await CommandRunner.factory(vscode.window.createTerminal({
       name: flagName,
